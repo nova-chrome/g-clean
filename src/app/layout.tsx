@@ -28,10 +28,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <ClerkProvider>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-red-400`}
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          suppressHydrationWarning
         >
           <header className="flex justify-end items-center p-4 gap-4 h-16">
             <SignedOut>
