@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { XIcon } from "lucide-react";
 import { DataTableFacetedFilter } from "~/components/data-table-faceted-filter";
+import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { columns } from "~/features/messages/components/messages-table/columns";
 import { DataTable } from "~/features/messages/components/messages-table/data-table";
@@ -29,9 +31,9 @@ export default function Home() {
               className="max-w-sm"
             />
 
-            {table.getColumn("labelIds") && (
+            {table.getColumn("labels") && (
               <DataTableFacetedFilter
-                column={table.getColumn("labelIds")}
+                column={table.getColumn("labels")}
                 title="Labels"
                 options={[
                   ...new Set(
@@ -44,6 +46,17 @@ export default function Home() {
                   value: labelId || "",
                 }))}
               />
+            )}
+
+            {table.getState().columnFilters.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => table.resetColumnFilters()}
+              >
+                Reset
+                <XIcon />
+              </Button>
             )}
           </>
         )}

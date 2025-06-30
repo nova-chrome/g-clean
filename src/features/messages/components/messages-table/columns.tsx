@@ -43,13 +43,14 @@ export const columns: ColumnDef<Message>[] = [
     cell: ({ row }) => row.getValue<string | undefined>("from"),
   },
   {
+    id: "labels",
     accessorKey: "labelIds",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Labels" />
     ),
-    filterFn: "arrIncludesAll",
+    filterFn: "arrIncludesSome",
     cell: ({ row }) => {
-      const labelIds = row.getValue<string[] | undefined>("labelIds");
+      const labelIds = row.getValue<string[] | undefined>("labels");
       return (
         <div className="flex flex-wrap gap-1">
           {labelIds?.map((labelId) => (
