@@ -3,7 +3,7 @@ export interface Message {
   date?: string;
   id?: string;
   labelIds?: string[];
-  senderEmail: string;
+  from: string;
   snippet?: string;
   subject?: string;
   to?: string;

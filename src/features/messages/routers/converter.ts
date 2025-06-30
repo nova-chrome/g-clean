@@ -32,7 +32,7 @@ export function convertGmailMessageToMessage(
     date: dateHeader || undefined,
     id: message.id || undefined,
     labelIds: message.labelIds || [],
-    senderEmail: extractEmailAddress(fromHeader || ""),
+    from: extractEmailAddress(fromHeader || ""),
     snippet: message.snippet || undefined,
     subject: subjectHeader || undefined,
     to: toHeader || undefined,
