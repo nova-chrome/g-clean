@@ -1,4 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PropsWithChildren } from "react";
@@ -22,17 +23,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <ClerkProvider>
-        <TRPCReactProvider>
+    <ClerkProvider>
+      <TRPCReactProvider>
+        <html lang="en" suppressHydrationWarning>
           <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             suppressHydrationWarning
           >
             {children}
           </body>
-        </TRPCReactProvider>
-      </ClerkProvider>
-    </html>
+        </html>
+        <ReactQueryDevtools />
+      </TRPCReactProvider>
+    </ClerkProvider>
   );
 }
