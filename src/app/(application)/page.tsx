@@ -29,6 +29,7 @@ export default async function Home() {
     const res = await gmail.users.messages.get({
       userId: "me",
       id: messageId,
+      prettyPrint: true,
     });
 
     return res.data;
