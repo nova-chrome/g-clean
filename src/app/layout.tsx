@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PropsWithChildren } from "react";
+import { TRPCReactProvider } from "~/lib/client/trpc/client";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,12 +24,14 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <ClerkProvider>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-          suppressHydrationWarning
-        >
-          {children}
-        </body>
+        <TRPCReactProvider>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            suppressHydrationWarning
+          >
+            {children}
+          </body>
+        </TRPCReactProvider>
       </ClerkProvider>
     </html>
   );
