@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { DataTableFacetedFilter } from "~/components/data-table-faceted-filter";
 import { DataTable } from "~/components/ui/data-table";
+import { Input } from "~/components/ui/input";
 import { columns } from "~/features/messages/components/messages-table/columns";
 import { useTRPC } from "~/lib/client/trpc/client";
 
@@ -13,7 +15,39 @@ export default function Home() {
 
   return (
     <div className="container mx-auto py-10">
-      <DataTable columns={columns} data={getMyMessagesQuery.data?.data || []} />
+      <DataTable columns={columns} data={getMyMessagesQuery.data?.data || []}>
+        {(table) => (
+          <>
+            <Input
+              placeholder="Filter subjects..."
+              value={
+                (table.getColumn("subject")?.getFilterValue() as string) ?? ""
+              }
+              onChange={(event) =>
+                table.getColumn("subject")?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+
+            {table.getColumn("labelIds") && (
+              <DataTableFacetedFilter
+                column={table.getColumn("labelIds")}
+                title="Labels"
+                options={[
+                  ...new Set(
+                    getMyMessagesQuery.data?.data
+                      .map((msg) => msg.labelIds)
+                      .flat()
+                  ),
+                ].map((labelId) => ({
+                  label: labelId || "",
+                  value: labelId || "",
+                }))}
+              />
+            )}
+          </>
+        )}
+      </DataTable>
     </div>
   );
 }
