@@ -1,16 +1,9 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { DataTableColumnHeader } from "~/components/data-table-column-header";
+import { Badge } from "~/components/ui/badge";
 import { Checkbox } from "~/components/ui/checkbox";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 import { Message } from "~/features/messages/types";
 
 export const columns: ColumnDef<Message>[] = [
@@ -50,39 +43,20 @@ export const columns: ColumnDef<Message>[] = [
     cell: ({ row }) => row.getValue<string | undefined>("from"),
   },
   {
-    accessorKey: "to",
+    accessorKey: "labelIds",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="To" />
+      <DataTableColumnHeader column={column} title="Labels" />
     ),
-    cell: function ToCell({ row }) {
-      const user = useUser();
-      const toAddress = row.getValue<string | undefined>("to");
-      const googleAccount = user.user?.externalAccounts.find(
-        (acc) => acc.provider === "google"
-      );
-      const isCurrentUser = toAddress === googleAccount?.emailAddress;
-
+    filterFn: "arrIncludesAll",
+    cell: ({ row }) => {
+      const labelIds = row.getValue<string[] | undefined>("labelIds");
       return (
-        <div className="inline-flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {isCurrentUser ? (
-                  <ArrowDownIcon className="h-4 w-4 text-green-600 cursor-help" />
-                ) : (
-                  <ArrowUpIcon className="h-4 w-4 text-blue-600 cursor-help" />
-                )}
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {isCurrentUser
-                    ? "Inbound - Email sent to you"
-                    : "Outbound - Email sent by you"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          {toAddress}
+        <div className="flex flex-wrap gap-1">
+          {labelIds?.map((labelId) => (
+            <Badge key={labelId + Math.random()} variant="secondary">
+              {labelId}
+            </Badge>
+          ))}
         </div>
       );
     },
