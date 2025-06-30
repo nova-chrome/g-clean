@@ -14,6 +14,8 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { DataTablePagination } from "~/components/data-table-pagination";
+import { DataTableViewOptions } from "~/components/data-table-view-options";
 
 import {
   Table,
@@ -23,8 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { DataTablePagination } from "../data-table-pagination";
-import { DataTableViewOptions } from "../data-table-view-options";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

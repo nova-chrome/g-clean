@@ -2,9 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { DataTableFacetedFilter } from "~/components/data-table-faceted-filter";
-import { DataTable } from "~/components/ui/data-table";
 import { Input } from "~/components/ui/input";
 import { columns } from "~/features/messages/components/messages-table/columns";
+import { DataTable } from "~/features/messages/components/messages-table/data-table";
 import { useTRPC } from "~/lib/client/trpc/client";
 
 export default function Home() {
