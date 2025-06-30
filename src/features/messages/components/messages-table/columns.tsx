@@ -2,8 +2,8 @@
 
 import { useUser } from "@clerk/nextjs";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
-import { Button } from "~/components/ui/button";
+import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { DataTableColumnHeader } from "~/components/data-table-column-header";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Tooltip,
@@ -40,25 +40,20 @@ export const columns: ColumnDef<Message>[] = [
     accessorKey: "subject",
     header: "Subject",
     cell: ({ row }) => row.getValue<string | undefined>("subject"),
+    enableHiding: false,
   },
   {
     accessorKey: "from",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          From
-          <ArrowUpDownIcon className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="From" />
+    ),
     cell: ({ row }) => row.getValue<string | undefined>("from"),
   },
   {
     accessorKey: "to",
-    header: "To",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="To" />
+    ),
     cell: function ToCell({ row }) {
       const user = useUser();
       const toAddress = row.getValue<string | undefined>("to");
@@ -93,9 +88,16 @@ export const columns: ColumnDef<Message>[] = [
     },
   },
   {
-    accessorFn: (row) => row.date,
-    header: "Date",
     id: "date",
+    sortingFn: (a, b) => {
+      const dateA = new Date(a.getValue("date"));
+      const dateB = new Date(b.getValue("date"));
+      return dateA.getTime() - dateB.getTime();
+    },
+    accessorFn: (row) => row.date,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Date" />
+    ),
     cell: ({ getValue }) => {
       const value = getValue<string | undefined>();
       const date = value ? new Date(value) : undefined;
@@ -107,9 +109,9 @@ export const columns: ColumnDef<Message>[] = [
     },
   },
   {
+    id: "time",
     accessorFn: (row) => row.date,
     header: "Time",
-    id: "time",
     cell: ({ getValue }) => {
       const value = getValue<string | undefined>();
       const date = value ? new Date(value) : undefined;
