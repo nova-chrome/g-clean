@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ModeToggle } from "~/components/mode-toggle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,7 +18,7 @@ export function AppHeader() {
   const formattedPathname = formatPathnameToTitleCase(pathname);
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b">
+    <header className="flex justify-between mr-3 h-16 shrink-0 items-center gap-2 border-b">
       <div className="flex items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator
@@ -26,7 +28,9 @@ export function AppHeader() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="#">G-Clean</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link href="/">G-Clean</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             {formattedPathname && (
               <>
@@ -39,6 +43,7 @@ export function AppHeader() {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
+      <ModeToggle />
     </header>
   );
 }
