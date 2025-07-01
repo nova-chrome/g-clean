@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { convertGmailMessageToMessage } from "~/features/messages/routers/converter";
 import { messages } from "~/lib/server/db/schema";
@@ -17,12 +17,21 @@ export const syncRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { gmail, db } = ctx;
+      const { gmail, db, auth } = ctx;
       const { batchSize, pageToken, debugMode, accurateTotal } = input;
+
+      // Get the current user ID
+      const userId = auth.userId;
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
 
       try {
         console.log(
-          `[SYNC] Starting batch with pageToken: ${
+          `[SYNC] Starting batch for user ${userId} with pageToken: ${
             pageToken || "INITIAL"
           }, batchSize: ${batchSize}, debugMode: ${debugMode}, accurateTotal: ${accurateTotal}`
         );
@@ -251,6 +260,7 @@ export const syncRouter = createTRPCRouter({
           .filter((msg) => msg?.id && msg?.body && msg?.from) // Ensure required fields exist
           .map((msg) => ({
             id: msg!.id!,
+            userId: userId, // Associate with current user
             body: msg!.body,
             date: msg!.date || null,
             from: msg!.from,
@@ -274,6 +284,7 @@ export const syncRouter = createTRPCRouter({
             .onConflictDoUpdate({
               target: messages.id,
               set: {
+                userId: sql`excluded.user_id`,
                 body: sql`excluded.body`,
                 date: sql`excluded.date`,
                 from: sql`excluded.from`,
@@ -509,13 +520,25 @@ export const syncRouter = createTRPCRouter({
   }),
 
   getSyncStatus: protectedProcedure.query(async ({ ctx }) => {
-    const { db } = ctx;
+    const { db, auth } = ctx;
 
     try {
-      const totalMessages = await db.select().from(messages);
+      const userId = auth.userId;
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
+      const totalMessages = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.userId, userId));
 
       return {
         totalSyncedMessages: totalMessages.length,
+        userId: userId,
       };
     } catch {
       throw new TRPCError({

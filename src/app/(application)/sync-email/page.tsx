@@ -233,6 +233,17 @@ The sync will use a small batch size (10) for testing with full diagnostic loggi
             Sync all your Gmail messages to the local database for faster access
             and analysis.
           </p>
+
+          {/* User Account Display */}
+          {getGmailProfileQuery.data?.emailAddress && (
+            <div className="mt-4 inline-flex items-center px-4 py-2 bg-gray-100 rounded-full">
+              <Mail className="h-4 w-4 text-gray-600 mr-2" />
+              <span className="text-sm text-gray-700">
+                Syncing:{" "}
+                <strong>{getGmailProfileQuery.data.emailAddress}</strong>
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
