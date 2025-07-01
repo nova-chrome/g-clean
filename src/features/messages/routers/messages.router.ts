@@ -1,9 +1,13 @@
 import { TRPCError } from "@trpc/server";
+import { desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
+import { messages } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
 import { tryCatch } from "~/util/try-catch";
 import { convertGmailMessageToMessage } from "./converter";
 
 export const messagesRouter = createTRPCRouter({
+  // Get messages from Gmail API (live)
   getMyMessages: protectedProcedure.query(async ({ ctx }) => {
     const { gmail } = ctx;
 
@@ -52,4 +56,59 @@ export const messagesRouter = createTRPCRouter({
       estimateCount: messagesList?.data?.resultSizeEstimate || 0,
     };
   }),
+
+  // Get messages from local database (synced messages, filtered by user)
+  getMySyncedMessages: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(20), // Limit results per page
+        offset: z.number().min(0).default(0), // Offset for pagination
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { db, auth } = ctx;
+      const { limit, offset } = input;
+
+      try {
+        const userId = auth.userId;
+        if (!userId) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "User not authenticated",
+          });
+        }
+
+        // Get paginated messages
+        const userMessages = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.userId, userId))
+          .orderBy(desc(messages.date)) // Order by date descending (newest first)
+          .limit(limit)
+          .offset(offset);
+
+        // Get total count for pagination
+        const [totalCountResult] = await db
+          .select({ count: sql`count(*)` })
+          .from(messages)
+          .where(eq(messages.userId, userId));
+
+        const totalCount = Number(totalCountResult?.count) || 0;
+
+        return {
+          data: userMessages,
+          totalCount,
+          limit,
+          offset,
+          hasMore: offset + limit < totalCount,
+          userId: userId,
+        };
+      } catch (error) {
+        console.error("Error fetching synced messages:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch synced messages",
+        });
+      }
+    }),
 });
