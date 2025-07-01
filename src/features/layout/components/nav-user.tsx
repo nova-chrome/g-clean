@@ -26,6 +26,8 @@ import {
   useSidebar,
 } from "~/components/ui/sidebar";
 import { Skeleton } from "~/components/ui/skeleton";
+import { getUserAvatarFallback } from "../util/get-user-avatar-fallback";
+import { getUserDisplayName } from "../util/get-user-display-name";
 
 export function NavUser() {
   const { user } = useUser();
@@ -116,52 +118,4 @@ function NavUserDisplay({
       </ClerkLoaded>
     </>
   );
-}
-
-function getUserDisplayName(user?: ReturnType<typeof useUser>["user"]) {
-  if (user?.username) {
-    return user.username;
-  }
-
-  if (user?.fullName) {
-    return user.fullName;
-  }
-
-  if (user?.firstName || user?.lastName) {
-    const firstName = user?.firstName || "";
-    const lastName = user?.lastName || "";
-    const fullName = `${firstName} ${lastName}`.trim();
-    return fullName;
-  }
-
-  return "No username";
-}
-
-function getUserAvatarFallback(
-  user?: ReturnType<typeof useUser>["user"]
-): string {
-  if (user?.username) {
-    return user.username.slice(0, 2).toUpperCase();
-  }
-
-  if (user?.fullName) {
-    const nameParts = user.fullName
-      .split(" ")
-      .filter((part) => part.length > 0);
-    if (nameParts.length >= 2) {
-      return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
-    } else if (nameParts.length === 1) {
-      return nameParts[0].slice(0, 2).toUpperCase();
-    }
-  }
-
-  if (user?.firstName) {
-    return user.firstName[0].toUpperCase();
-  }
-
-  if (user?.lastName) {
-    return user.lastName[0].toUpperCase();
-  }
-
-  return "U";
 }
