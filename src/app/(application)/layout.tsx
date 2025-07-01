@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
 import {
   Breadcrumb,
@@ -19,6 +22,9 @@ import { AppSidebar } from "./_components/app-sidebar";
 export default function ApplicationLayout({
   children,
 }: Readonly<PropsWithChildren>) {
+  const pathname = usePathname();
+  const formattedPathname = formatPathnameToTitleCase(pathname);
+
   return (
     <SidebarProvider>
       <div className="flex h-full w-full">
@@ -38,7 +44,7 @@ export default function ApplicationLayout({
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                    <BreadcrumbPage>{formattedPathname}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
@@ -51,5 +57,13 @@ export default function ApplicationLayout({
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function formatPathnameToTitleCase(pathname: string): string {
+  const segment = pathname.split("/").pop() || "";
+  return (
+    segment.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) ||
+    "Home"
   );
 }
