@@ -42,10 +42,14 @@ export default function ApplicationLayout({
                   <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="#">G-Clean</BreadcrumbLink>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{formattedPathname}</BreadcrumbPage>
-                  </BreadcrumbItem>
+                  {formattedPathname && (
+                    <>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>{formattedPathname}</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </>
+                  )}
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
@@ -64,6 +68,6 @@ function formatPathnameToTitleCase(pathname: string): string {
   const segment = pathname.split("/").pop() || "";
   return (
     segment.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) ||
-    "Home"
+    ""
   );
 }
