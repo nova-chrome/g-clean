@@ -60,7 +60,7 @@ export function NavUser() {
             {/* NOTE: Add more items here */}
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/account">
+                <Link href="/profile">
                   <BadgeCheck />
                   Account
                 </Link>
