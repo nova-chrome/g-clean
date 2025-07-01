@@ -8,6 +8,13 @@
       "when": 1751344422369,
       "tag": "0000_smooth_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751353353346,
+      "tag": "0001_uneven_whizzer",
+      "breakpoints": true
     }
   ]
 }
