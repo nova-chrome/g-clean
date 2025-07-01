@@ -1,6 +1,11 @@
 "use client";
 
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import {
+  ClerkLoaded,
+  ClerkLoading,
+  SignOutButton,
+  useUser,
+} from "@clerk/nextjs";
 import { BadgeCheck, ChevronsUpDown, LogOut, Sparkles } from "lucide-react";
 import Link from "next/link";
 
@@ -20,6 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "~/components/ui/sidebar";
+import { Skeleton } from "~/components/ui/skeleton";
 
 export function NavUser() {
   const { user } = useUser();
@@ -86,18 +92,76 @@ function NavUserDisplay({
   user?: ReturnType<typeof useUser>["user"];
 }) {
   const email = user?.primaryEmailAddress?.emailAddress ?? "No email";
-  const username =
-    user?.username ?? user?.fullName ?? `${user?.firstName} ${user?.lastName}`;
+  const username = getUserDisplayName(user);
+  const fallback = getUserAvatarFallback(user);
+
   return (
     <>
-      <Avatar className="h-8 w-8 rounded-lg">
-        <AvatarImage src={user?.imageUrl} alt={username} />
-        <AvatarFallback className="rounded-lg">UP</AvatarFallback>
-      </Avatar>
-      <div className="grid flex-1 text-left text-sm leading-tight">
-        <span className="truncate font-medium">{username}</span>
-        <span className="truncate text-xs">{email}</span>
-      </div>
+      <ClerkLoading>
+        <Skeleton className="h-8 w-8 rounded-lg" />
+        <div className="grid flex-1 text-left text-sm leading-tight">
+          <Skeleton className="h-4 w-20 mb-1" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </ClerkLoading>
+      <ClerkLoaded>
+        <Avatar className="h-8 w-8 rounded-lg">
+          <AvatarImage src={user?.imageUrl} alt={username} />
+          <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
+        </Avatar>
+        <div className="grid flex-1 text-left text-sm leading-tight">
+          <span className="truncate font-medium">{username}</span>
+          <span className="truncate text-xs">{email}</span>
+        </div>
+      </ClerkLoaded>
     </>
   );
+}
+
+function getUserDisplayName(user?: ReturnType<typeof useUser>["user"]) {
+  if (user?.username) {
+    return user.username;
+  }
+
+  if (user?.fullName) {
+    return user.fullName;
+  }
+
+  if (user?.firstName || user?.lastName) {
+    const firstName = user?.firstName || "";
+    const lastName = user?.lastName || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName;
+  }
+
+  return "No username";
+}
+
+function getUserAvatarFallback(
+  user?: ReturnType<typeof useUser>["user"]
+): string {
+  if (user?.username) {
+    return user.username.slice(0, 2).toUpperCase();
+  }
+
+  if (user?.fullName) {
+    const nameParts = user.fullName
+      .split(" ")
+      .filter((part) => part.length > 0);
+    if (nameParts.length >= 2) {
+      return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+    } else if (nameParts.length === 1) {
+      return nameParts[0].slice(0, 2).toUpperCase();
+    }
+  }
+
+  if (user?.firstName) {
+    return user.firstName[0].toUpperCase();
+  }
+
+  if (user?.lastName) {
+    return user.lastName[0].toUpperCase();
+  }
+
+  return "U";
 }
