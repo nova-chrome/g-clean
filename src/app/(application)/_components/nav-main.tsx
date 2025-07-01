@@ -1,4 +1,5 @@
 import { FrameIcon, MailIcon } from "lucide-react";
+import Link from "next/link";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -10,7 +11,7 @@ import {
 const APP_ROUTES = [
   {
     name: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: FrameIcon,
   },
   {
@@ -28,10 +29,10 @@ export function NavMain() {
         {APP_ROUTES.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
-              <a href={item.url}>
+              <Link href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
