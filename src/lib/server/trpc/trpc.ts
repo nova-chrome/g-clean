@@ -1,16 +1,17 @@
 import clerk from "@clerk/clerk-sdk-node";
-import { auth } from "@clerk/nextjs/server";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { google } from "googleapis";
 import { cache } from "react";
 import superjson from "superjson";
+import { db } from "../db/drizzle";
 
 export type TrpcContext = Awaited<ReturnType<typeof createTRPCContext>>;
 
 export const createTRPCContext = cache(async () => {
-  const clerkAuth = await auth();
+  const auth = await clerkAuth();
   const [OauthAccessToken] = await clerk.users.getUserOauthAccessToken(
-    clerkAuth.userId || "",
+    auth.userId || "",
     "oauth_google"
   );
 
@@ -22,7 +23,8 @@ export const createTRPCContext = cache(async () => {
   });
 
   return {
-    auth: clerkAuth,
+    auth,
+    db,
     gmail,
   };
 });
