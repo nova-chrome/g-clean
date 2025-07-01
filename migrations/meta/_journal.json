@@ -15,6 +15,13 @@
       "when": 1751353353346,
       "tag": "0001_uneven_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751357517034,
+      "tag": "0002_perpetual_gambit",
+      "breakpoints": true
     }
   ]
 }

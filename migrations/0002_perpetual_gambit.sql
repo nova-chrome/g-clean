@@ -1,0 +1,1 @@
+ALTER TABLE "gc_messages" ADD COLUMN "user_id" text NOT NULL;
