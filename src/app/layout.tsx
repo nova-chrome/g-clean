@@ -3,6 +3,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PropsWithChildren } from "react";
+import { ThemeProvider } from "~/components/theme-provider";
 import { TRPCReactProvider } from "~/lib/client/trpc/client";
 import "./globals.css";
 
@@ -30,7 +31,14 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             suppressHydrationWarning
           >
-            {children}
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
           </body>
         </html>
         <ReactQueryDevtools />
