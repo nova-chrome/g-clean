@@ -1,12 +1,9 @@
-import { sql } from "drizzle-orm";
-import { pgTableCreator, text, uuid } from "drizzle-orm/pg-core";
+import { pgTableCreator, text } from "drizzle-orm/pg-core";
 
 export const pgTable = pgTableCreator((name) => `gc_${name}`);
 
 export const messages = pgTable("messages", {
-  id: uuid("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
+  id: text("id").primaryKey(), // Gmail message IDs are text, not UUIDs
   body: text("body").notNull(),
   date: text("date"),
   from: text("from").notNull(),

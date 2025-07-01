@@ -11,7 +11,13 @@ export const messagesRouter = createTRPCRouter({
       gmail.users.messages.list({
         userId: "me",
         prettyPrint: true,
+        maxResults: 50, // Adjust as needed, max is 500
       })
+    );
+
+    console.log(
+      "[MESSAGES ROUTER::getMyMessages] Retrieved messages list:",
+      JSON.stringify(messagesList?.data, null, 2)
     );
 
     if (listError) {
