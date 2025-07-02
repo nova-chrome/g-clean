@@ -1,4 +1,4 @@
-import { FrameIcon, MailIcon } from "lucide-react";
+import { CloudCheckIcon, MailIcon } from "lucide-react";
 import Link from "next/link";
 import {
   SidebarGroup,
@@ -10,14 +10,14 @@ import {
 
 const APP_ROUTES = [
   {
-    name: "Dashboard",
-    url: "/dashboard",
-    icon: FrameIcon,
+    name: "Messages",
+    url: "/messages",
+    icon: MailIcon,
   },
   {
     name: "Sync Email",
     url: "/sync-email",
-    icon: MailIcon,
+    icon: CloudCheckIcon,
   },
 ];
 

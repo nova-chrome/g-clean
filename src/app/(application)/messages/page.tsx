@@ -6,7 +6,7 @@ import { DashboardFilters } from "~/features/messages/components/messages-table/
 import { DataTable } from "~/features/messages/components/messages-table/data-table";
 import { useTRPC } from "~/lib/client/trpc/client";
 
-export default function Dashboard() {
+export default function MessagesPage() {
   const trpc = useTRPC();
 
   const getMySyncedMessagesQuery = useQuery({
