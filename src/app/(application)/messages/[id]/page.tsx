@@ -259,7 +259,7 @@ function EmailIframe({ body }: EmailIframeProps) {
         `}
         className="w-full border-0 bg-white rounded"
         style={{ minHeight: "200px" }}
-        sandbox="allow-same-origin"
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
         onLoad={(e) => {
           const iframe = e.target as HTMLIFrameElement;
           const doc = iframe.contentDocument;
