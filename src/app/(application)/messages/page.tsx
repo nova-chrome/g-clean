@@ -19,7 +19,11 @@ export default function MessagesPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <DataTable columns={columns} data={getMySyncedMessagesQuery.data || []}>
+      <DataTable
+        columns={columns}
+        data={getMySyncedMessagesQuery.data || []}
+        isLoading={getMySyncedMessagesQuery.isLoading}
+      >
         {(table) => (
           <DashboardFilters
             table={table}

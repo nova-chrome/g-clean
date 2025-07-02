@@ -17,6 +17,7 @@ import { useState } from "react";
 import { DataTablePagination } from "~/components/data-table-pagination";
 import { DataTableViewOptions } from "~/components/data-table-view-options";
 
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -30,12 +31,14 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   children?: (table: TanstackTable<TData>) => React.ReactNode;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   children,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -92,7 +95,29 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              Array.from({ length: 10 }).map((_, index) => (
+                <TableRow key={`loading-${index}`}>
+                  {table.getVisibleFlatColumns().map((column, colIndex) => (
+                    <TableCell key={`loading-cell-${colIndex}`}>
+                      {column.id === "select" ? (
+                        <Skeleton className="h-4 w-4 rounded-sm" />
+                      ) : column.id === "subject" ? (
+                        <Skeleton className="h-8 w-96" />
+                      ) : column.id === "from" ? (
+                        <Skeleton className="h-8 w-80" />
+                      ) : column.id === "date" ? (
+                        <Skeleton className="h-8 w-20" />
+                      ) : column.id === "time" ? (
+                        <Skeleton className="h-8 w-16" />
+                      ) : (
+                        <Skeleton className="h-8 w-24" />
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
