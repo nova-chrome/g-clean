@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { messages } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
@@ -56,13 +56,11 @@ export const messagesRouter = createTRPCRouter({
       estimateCount: messagesList?.data?.resultSizeEstimate || 0,
     };
   }),
-
-  // Get messages from local database (synced messages, filtered by user)
   getMySyncedMessages: protectedProcedure
     .input(
       z.object({
-        limit: z.number().min(1).max(100).default(20), // Limit results per page
-        offset: z.number().min(0).default(0), // Offset for pagination
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -118,5 +116,40 @@ export const messagesRouter = createTRPCRouter({
         hasMore: offset + limit < totalCount,
         userId,
       };
+    }),
+  getMySyncedMessage: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { db, auth } = ctx;
+      const { messageId } = input;
+      const userId = auth.userId;
+
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
+      const { data: userMessage, error: userMessageError } = await tryCatch(
+        db
+          .select()
+          .from(messages)
+          .where(and(eq(messages.userId, userId), eq(messages.id, messageId)))
+          .limit(1)
+      );
+
+      if (userMessageError) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch synced message",
+        });
+      }
+
+      return userMessage[0];
     }),
 });
