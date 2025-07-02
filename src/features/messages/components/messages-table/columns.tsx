@@ -1,11 +1,13 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { DataTableColumnHeader } from "~/components/data-table-column-header";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import { useTRPC } from "~/lib/client/trpc/client";
 import { Message } from "~/lib/server/db/schema";
 import { LabelBadge } from "../label-badge";
 
@@ -35,7 +37,9 @@ export const columns: ColumnDef<Message>[] = [
   {
     accessorKey: "subject",
     header: "Subject",
-    cell: ({ row }) => {
+    cell: function SubjectCell({ row }) {
+      const trpc = useTRPC();
+      const queryClient = useQueryClient();
       const subject = row.getValue<string | undefined>("subject");
       return (
         <div className="flex group items-center justify-between">
@@ -46,7 +50,17 @@ export const columns: ColumnDef<Message>[] = [
             className="opacity-0 group-hover:opacity-100 transition-opacity text-xs border-primary hover:bg-accent hover:text-accent-foreground px-2"
             asChild
           >
-            <Link href={`/messages/${row.original.id}`}>
+            <Link
+              href={`/messages/${row.original.id}`}
+              onClick={() => {
+                queryClient.setQueryData(
+                  trpc.messages.getMySyncedMessage.queryKey({
+                    messageId: row.original.id,
+                  }),
+                  () => row.original
+                );
+              }}
+            >
               <ArrowRightIcon className="h-3 w-3 mr-1" />
               View
             </Link>
