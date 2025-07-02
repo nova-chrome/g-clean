@@ -1,7 +1,9 @@
+import { InferSelectModel } from "drizzle-orm";
 import { pgTableCreator, text } from "drizzle-orm/pg-core";
 
 export const pgTable = pgTableCreator((name) => `gc_${name}`);
 
+export type Message = InferSelectModel<typeof messages>;
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(), // Gmail message IDs are text, not UUIDs
   userId: text("user_id").notNull(), // Clerk user ID
