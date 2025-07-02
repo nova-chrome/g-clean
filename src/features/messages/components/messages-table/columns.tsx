@@ -2,11 +2,23 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowRightIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArrowRightIcon,
+  MoreHorizontalIcon,
+  Trash2Icon,
+} from "lucide-react";
 import Link from "next/link";
 import { DataTableColumnHeader } from "~/components/data-table-column-header";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { useTRPC } from "~/lib/client/trpc/client";
 import { Message } from "~/lib/server/db/schema";
 import { LabelBadge } from "../label-badge";
@@ -127,6 +139,45 @@ export const columns: ColumnDef<Message>[] = [
         hour: "2-digit",
         minute: "2-digit",
       });
+    },
+  },
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: () => {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontalIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <ArchiveIcon />
+                Archive
+              </Button>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+              >
+                <Trash2Icon />
+                Trash
+              </Button>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
     },
   },
 ];
