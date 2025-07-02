@@ -4,10 +4,10 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { DataTableColumnHeader } from "~/components/data-table-column-header";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import { Message } from "~/features/messages/types";
+import { Message } from "~/lib/server/db/schema";
+import { LabelBadge } from "../label-badge";
 
 export const columns: ColumnDef<Message>[] = [
   {
@@ -75,9 +75,7 @@ export const columns: ColumnDef<Message>[] = [
       return (
         <div className="flex flex-wrap gap-1">
           {labelIds?.map((labelId) => (
-            <Badge key={labelId + Math.random()} variant="secondary">
-              {labelId}
-            </Badge>
+            <LabelBadge key={labelId + Math.random()} labelId={labelId} />
           ))}
         </div>
       );
