@@ -68,47 +68,55 @@ export const messagesRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { db, auth } = ctx;
       const { limit, offset } = input;
+      const userId = auth.userId;
 
-      try {
-        const userId = auth.userId;
-        if (!userId) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "User not authenticated",
-          });
-        }
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
 
-        // Get paginated messages
-        const userMessages = await db
+      const { data: userMessages, error: userMessagesError } = await tryCatch(
+        db
           .select()
           .from(messages)
           .where(eq(messages.userId, userId))
           .orderBy(desc(messages.date)) // Order by date descending (newest first)
           .limit(limit)
-          .offset(offset);
+          .offset(offset)
+      );
 
-        // Get total count for pagination
-        const [totalCountResult] = await db
-          .select({ count: sql`count(*)` })
-          .from(messages)
-          .where(eq(messages.userId, userId));
-
-        const totalCount = Number(totalCountResult?.count) || 0;
-
-        return {
-          data: userMessages,
-          totalCount,
-          limit,
-          offset,
-          hasMore: offset + limit < totalCount,
-          userId: userId,
-        };
-      } catch (error) {
-        console.error("Error fetching synced messages:", error);
+      if (userMessagesError) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch synced messages",
         });
       }
+
+      const { data: totalCountResult, error: totalCountError } = await tryCatch(
+        db
+          .select({ count: sql`count(*)` })
+          .from(messages)
+          .where(eq(messages.userId, userId))
+      );
+
+      if (totalCountError) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch total message count",
+        });
+      }
+
+      const totalCount = Number(totalCountResult?.[0]?.count) || 0;
+
+      return {
+        data: userMessages,
+        totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount,
+        userId,
+      };
     }),
 });
