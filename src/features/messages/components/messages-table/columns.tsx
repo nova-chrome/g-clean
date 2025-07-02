@@ -1,8 +1,11 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { ArrowRightIcon } from "lucide-react";
+import Link from "next/link";
 import { DataTableColumnHeader } from "~/components/data-table-column-header";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Message } from "~/features/messages/types";
 
@@ -32,7 +35,25 @@ export const columns: ColumnDef<Message>[] = [
   {
     accessorKey: "subject",
     header: "Subject",
-    cell: ({ row }) => row.getValue<string | undefined>("subject"),
+    cell: ({ row }) => {
+      const subject = row.getValue<string | undefined>("subject");
+      return (
+        <div className="flex group items-center justify-between">
+          <span className="font-medium">{subject}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-xs border-primary hover:bg-accent hover:text-accent-foreground px-2"
+            asChild
+          >
+            <Link href={`/messages/${row.original.id}`}>
+              <ArrowRightIcon className="h-3 w-3 mr-1" />
+              View
+            </Link>
+          </Button>
+        </div>
+      );
+    },
     enableHiding: false,
   },
   {
