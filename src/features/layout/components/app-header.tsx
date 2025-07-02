@@ -11,11 +11,11 @@ import {
 } from "~/components/ui/breadcrumb";
 import { Separator } from "~/components/ui/separator";
 import { SidebarTrigger } from "~/components/ui/sidebar";
-import { formatPathnameToTitleCase } from "../util/format-pathname-to-titlecase";
+import { generateBreadcrumbSegments } from "../util/generate-breadcrumbs-segments";
 
 export function AppHeader() {
   const pathname = usePathname();
-  const formattedPathname = formatPathnameToTitleCase(pathname);
+  const breadcrumbSegments = generateBreadcrumbSegments(pathname);
 
   return (
     <header className="flex justify-between mr-3 h-16 shrink-0 items-center gap-2 border-b">
@@ -32,14 +32,20 @@ export function AppHeader() {
                 <Link href="/">G-Clean</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            {formattedPathname && (
-              <>
+            {breadcrumbSegments.map((segment) => (
+              <div key={segment.href} className="flex items-center">
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{formattedPathname}</BreadcrumbPage>
+                  {segment.isLast ? (
+                    <BreadcrumbPage>{segment.label}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link href={segment.href}>{segment.label}</Link>
+                    </BreadcrumbLink>
+                  )}
                 </BreadcrumbItem>
-              </>
-            )}
+              </div>
+            ))}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
