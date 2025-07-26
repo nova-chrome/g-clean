@@ -1,9 +1,10 @@
 import { gmail_v1 } from "googleapis";
+import { Message } from "~/lib/server/db/schema";
 import { decodeBase64 } from "~/util/decode-base64";
-import { Message } from "../types";
 import { extractEmailAddress } from "../util/extract-email-address";
 
 export function convertGmailMessageToMessage(
+  userId: string,
   message: gmail_v1.Schema$Message
 ): Message {
   const headers = message?.payload?.headers || [];
@@ -29,13 +30,14 @@ export function convertGmailMessageToMessage(
       message.payload?.body,
       message.payload?.parts
     ),
-    date: dateHeader || undefined,
-    id: message.id || undefined,
+    date: dateHeader || "",
+    id: message.id || "",
     labelIds: message.labelIds || [],
     from: extractEmailAddress(fromHeader || ""),
-    snippet: message.snippet || undefined,
-    subject: subjectHeader || undefined,
-    to: toHeader || undefined,
+    snippet: message.snippet || "",
+    subject: subjectHeader || "",
+    to: toHeader || "",
+    userId,
   };
 }
 

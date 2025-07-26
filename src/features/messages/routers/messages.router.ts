@@ -4,6 +4,7 @@ import { z } from "zod";
 import { messages } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
 import { tryCatch } from "~/util/try-catch";
+import { convertGmailMessageToMessage } from "./converter";
 
 export const messagesRouter = createTRPCRouter({
   getMySyncedMessages: protectedProcedure
@@ -139,4 +140,109 @@ export const messagesRouter = createTRPCRouter({
         })) || []
     );
   }),
+  syncGmailWithMessages: protectedProcedure
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const { db, gmail, auth } = ctx;
+      const userId = auth.userId;
+
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
+      let totalSynced = 0;
+      let pageToken: string | undefined;
+
+      do {
+        // Fetch messages from Gmail API with pagination
+        const { data: listResponse, error: listError } = await tryCatch(
+          gmail.users.messages.list({
+            userId: "me",
+            maxResults: 100,
+            includeSpamTrash: true,
+            pageToken,
+          })
+        );
+
+        if (listError) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to fetch messages from Gmail",
+          });
+        }
+
+        const messageIds = listResponse.data.messages || [];
+
+        if (messageIds.length === 0) {
+          break;
+        }
+
+        // Fetch full message details for each message ID
+        const messagePromises = messageIds.map(async (msgRef) => {
+          const { data: messageResponse, error: messageError } = await tryCatch(
+            gmail.users.messages.get({
+              userId: "me",
+              id: msgRef.id!,
+            })
+          );
+
+          if (messageError) {
+            console.error(
+              `Failed to fetch message ${msgRef.id}:`,
+              messageError
+            );
+            return null;
+          }
+
+          return convertGmailMessageToMessage(userId, messageResponse.data);
+        });
+
+        const messagesData = await Promise.all(messagePromises);
+        const validMessages = messagesData.filter(
+          (msg): msg is NonNullable<typeof msg> => msg !== null
+        );
+
+        // Upsert messages into database
+        if (validMessages.length > 0) {
+          const { error: upsertError } = await tryCatch(
+            db
+              .insert(messages)
+              .values(validMessages)
+              .onConflictDoUpdate({
+                target: messages.id,
+                set: {
+                  body: sql.raw("excluded.body"),
+                  date: sql.raw("excluded.date"),
+                  from: sql.raw("excluded.from"),
+                  labelIds: sql.raw("excluded.label_ids"),
+                  snippet: sql.raw("excluded.snippet"),
+                  subject: sql.raw("excluded.subject"),
+                  to: sql.raw("excluded.to"),
+                },
+              })
+          );
+
+          if (upsertError) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to save messages to database",
+            });
+          }
+
+          totalSynced += validMessages.length;
+        }
+
+        // Set pageToken for next iteration
+        pageToken = listResponse.data.nextPageToken || undefined;
+      } while (pageToken);
+
+      return {
+        success: true,
+        message: "Gmail messages synced successfully",
+        totalSynced,
+      };
+    }),
 });
