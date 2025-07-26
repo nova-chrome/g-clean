@@ -88,7 +88,7 @@ export default function MessagesPage() {
     trpc.messages.syncGmailWithMessages.mutationOptions({
       onMutate: () => {
         toast.loading("Starting Gmail sync...", {
-          description: "This may take a few moments",
+          description: "This may take a few minutes",
         });
       },
       onSuccess: (data) => {
@@ -105,6 +105,11 @@ export default function MessagesPage() {
         toast.error("Sync failed", {
           description: error.message,
         });
+      },
+      onSettled: () => {
+        setTimeout(() => {
+          toast.dismiss();
+        }, 3000);
       },
     })
   );
