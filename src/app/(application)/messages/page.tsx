@@ -1,8 +1,12 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { PaginationState } from "@tanstack/react-table";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DataTable } from "~/components/ui/data-table/data-table";
 import { DataTablePagination } from "~/components/ui/data-table/data-table-pagination";
 import { useDataTableDefaults } from "~/components/ui/data-table/use-data-table-defaults";
@@ -12,9 +16,10 @@ import { useTRPC } from "~/lib/client/trpc/client";
 
 export default function MessagesPage() {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0, //initial page index
-    pageSize: 10, //default page size
+    pageIndex: 0,
+    pageSize: 10,
   });
 
   const getMySyncedMessagesQuery = useQuery({
@@ -30,6 +35,28 @@ export default function MessagesPage() {
     trpc.messages.getMessagesLabels.queryOptions()
   );
 
+  useEffect(() => {
+    const nextPageOffset = (pagination.pageIndex + 1) * pagination.pageSize;
+
+    const totalCount = getMySyncedMessagesQuery.data?.totalCount ?? 0;
+    const hasNextPage = nextPageOffset < totalCount;
+
+    if (hasNextPage) {
+      queryClient.prefetchQuery({
+        ...trpc.messages.getMySyncedMessages.queryOptions({
+          limit: pagination.pageSize,
+          offset: nextPageOffset,
+        }),
+      });
+    }
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    getMySyncedMessagesQuery.data?.totalCount,
+    queryClient,
+    trpc.messages.getMySyncedMessages,
+  ]);
+
   const table = useDataTableDefaults({
     data: getMySyncedMessagesQuery.data?.data || [],
     columns,
@@ -37,7 +64,6 @@ export default function MessagesPage() {
 
   table.setOptions((prev) => ({
     ...prev,
-    // manual pagination
     manualPagination: true,
     onPaginationChange: setPagination,
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
