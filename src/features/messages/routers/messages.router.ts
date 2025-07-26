@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, arrayOverlaps, desc, eq, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { messages } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
@@ -12,11 +12,12 @@ export const messagesRouter = createTRPCRouter({
         limit: z.number().min(1).max(100).default(20),
         offset: z.number().min(0).default(0),
         search: z.string().optional(),
+        labels: z.array(z.string()).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       const { db, auth } = ctx;
-      const { limit, offset, search } = input;
+      const { limit, offset, search, labels } = input;
       const userId = auth.userId;
 
       if (!userId) {
@@ -31,6 +32,11 @@ export const messagesRouter = createTRPCRouter({
 
       if (search && search.trim().length > 0) {
         whereConditions.push(ilike(messages.subject, `%${search.trim()}%`));
+      }
+
+      if (labels && labels.length > 0) {
+        // Check if message has any of the selected labels (overlapping arrays)
+        whereConditions.push(arrayOverlaps(messages.labelIds, labels));
       }
 
       const { data: userMessages, error: userMessagesError } = await tryCatch(
