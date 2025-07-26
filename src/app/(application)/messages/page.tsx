@@ -32,6 +32,12 @@ export default function MessagesPage() {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
+  const handleLabelsChange = useCallback((newLabels: string[]) => {
+    setLabels(newLabels);
+    // Reset to first page when filtering
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
   const getMySyncedMessagesQuery = useQuery({
     ...trpc.messages.getMySyncedMessages.queryOptions({
       limit: pagination.pageSize,
@@ -56,33 +62,10 @@ export default function MessagesPage() {
     ...prev,
     manualPagination: true,
     onPaginationChange: setPagination,
-    onColumnFiltersChange: (updaterOrValue) => {
-      const newFilters =
-        typeof updaterOrValue === "function"
-          ? updaterOrValue(prev.state?.columnFilters || [])
-          : updaterOrValue;
-
-      const labelsFilter = newFilters.find((filter) => filter.id === "labels");
-      const newLabels = (labelsFilter?.value as string[]) || [];
-
-      if (JSON.stringify(newLabels) !== JSON.stringify(labels)) {
-        setLabels(newLabels);
-        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-      }
-    },
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
     state: {
       ...prev.state,
       pagination,
-      columnFilters:
-        labels.length > 0
-          ? [
-              {
-                id: "labels",
-                value: labels,
-              },
-            ]
-          : [],
     },
   }));
 
@@ -124,6 +107,7 @@ export default function MessagesPage() {
           labels={getGmailLabelsQuery.data || []}
           search={search}
           onSearchChange={handleSearchChange}
+          onLabelsChange={handleLabelsChange}
           isSearching={getMySyncedMessagesQuery.isFetching}
         />
       </DataTable>

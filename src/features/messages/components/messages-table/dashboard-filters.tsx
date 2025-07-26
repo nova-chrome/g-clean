@@ -11,6 +11,7 @@ interface DashboardFiltersProps<TData> {
   labels: Label[];
   search: string;
   onSearchChange: (value: string) => void;
+  onLabelsChange: (values: string[]) => void;
   isSearching?: boolean;
 }
 
@@ -19,6 +20,7 @@ export function DashboardFilters<TData>({
   labels,
   search,
   onSearchChange,
+  onLabelsChange,
   isSearching = false,
 }: DashboardFiltersProps<TData>) {
   return (
@@ -42,6 +44,7 @@ export function DashboardFilters<TData>({
           column={table.getColumn("labels")}
           title="Labels"
           options={labels}
+          onFilterChange={onLabelsChange}
         />
       )}
 
@@ -52,6 +55,7 @@ export function DashboardFilters<TData>({
           onClick={() => {
             table.resetColumnFilters();
             onSearchChange("");
+            onLabelsChange([]);
           }}
         >
           Reset
