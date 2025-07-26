@@ -9,9 +9,9 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
-import { DataTableColumnHeader } from "~/components/data-table-column-header";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import { DataTableColumnHeader } from "~/components/ui/data-table/data-table-column-header";
 import {
   DropdownMenu,
   DropdownMenuContent,

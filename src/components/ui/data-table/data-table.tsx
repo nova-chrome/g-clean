@@ -1,21 +1,8 @@
 "use client";
 
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  SortingState,
-  Table as TanstackTable,
-  useReactTable,
-  VisibilityState,
-} from "@tanstack/react-table";
-import { useState } from "react";
-import { DataTablePagination } from "~/components/data-table-pagination";
-import { DataTableViewOptions } from "~/components/data-table-view-options";
+import { flexRender, Table as TanstackTable } from "@tanstack/react-table";
+import { PropsWithChildren } from "react";
+import { DataTableViewOptions } from "~/components/ui/data-table/data-table-view-options";
 
 import { Skeleton } from "~/components/ui/skeleton";
 import {
@@ -26,50 +13,24 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { Progress } from "../progress";
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
-  children?: (table: TanstackTable<TData>) => React.ReactNode;
+interface DataTableProps<TData> {
+  table: TanstackTable<TData>;
   isLoading?: boolean;
+  isFetching?: boolean;
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
+export function DataTable<TData>({
+  table,
   children,
   isLoading = false,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    labels: false,
-  });
-  const [rowSelection, setRowSelection] = useState({});
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
-  });
-
+  isFetching = false,
+}: PropsWithChildren<DataTableProps<TData>>) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        {children?.(table)}
+        {children}
 
         <DataTableViewOptions table={table} />
       </div>
@@ -93,6 +54,20 @@ export function DataTable<TData, TValue>({
                 })}
               </TableRow>
             ))}
+            {isFetching && (
+              <TableRow>
+                <TableCell
+                  colSpan={table.getVisibleFlatColumns().length}
+                  className="p-0"
+                >
+                  <Progress
+                    indeterminate={isFetching}
+                    value={100}
+                    className="h-0.5 w-full rounded-none"
+                  />
+                </TableCell>
+              </TableRow>
+            )}
           </TableHeader>
           <TableBody>
             {isLoading ? (
@@ -136,7 +111,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getVisibleFlatColumns().length}
                   className="h-24 text-center"
                 >
                   No results.
@@ -146,8 +121,6 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-
-      <DataTablePagination table={table} />
     </div>
   );
 }

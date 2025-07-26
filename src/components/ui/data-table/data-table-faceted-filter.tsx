@@ -3,8 +3,8 @@ import { Check, PlusCircle } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "~/lib/utils";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
+import { Badge } from "../badge";
+import { Button } from "../button";
 import {
   Command,
   CommandEmpty,
@@ -13,9 +13,9 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "./ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Separator } from "./ui/separator";
+} from "../command";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
+import { Separator } from "../separator";
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;

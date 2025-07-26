@@ -1,8 +1,8 @@
 import { Table } from "@tanstack/react-table";
 import { XIcon } from "lucide-react";
 import { Fragment } from "react";
-import { DataTableFacetedFilter } from "~/components/data-table-faceted-filter";
 import { Button } from "~/components/ui/button";
+import { DataTableFacetedFilter } from "~/components/ui/data-table/data-table-faceted-filter";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/lib/server/db/schema";
 
