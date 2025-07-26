@@ -13,7 +13,7 @@ import {
   parseAsString,
   useQueryStates,
 } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { DataTable } from "~/components/ui/data-table/data-table";
 import { DataTableFacetedFilter } from "~/components/ui/data-table/data-table-faceted-filter";
@@ -51,33 +51,21 @@ export default function MessagesPage() {
     [page, pageSize]
   );
 
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setQueryStates({ search: value, page: 1 });
-    },
-    [setQueryStates]
-  );
+  const handleSearchChange = (value: string) => {
+    setQueryStates({ search: value, page: 1 });
+  };
 
-  const handleLabelsChange = useCallback(
-    (newLabels: string[]) => {
-      setQueryStates({ labels: newLabels, page: 1 });
-    },
-    [setQueryStates]
-  );
+  const handleLabelsChange = (newLabels: string[]) => {
+    setQueryStates({ labels: newLabels, page: 1 });
+  };
 
-  const handlePaginationChange = useCallback(
-    (
-      updater: PaginationState | ((old: PaginationState) => PaginationState)
-    ) => {
-      const newPagination =
-        typeof updater === "function" ? updater(pagination) : updater;
-      setQueryStates({
-        page: newPagination.pageIndex + 1, // Convert back to 1-based
-        pageSize: newPagination.pageSize,
-      });
-    },
-    [pagination, setQueryStates]
-  );
+  const handlePageChange = (newPage: number) => {
+    setQueryStates({ page: newPage });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setQueryStates({ pageSize: newPageSize, page: 1 });
+  };
 
   const getMySyncedMessagesQuery = useQuery({
     ...trpc.messages.getMySyncedMessages.queryOptions({
@@ -102,7 +90,6 @@ export default function MessagesPage() {
   table.setOptions((prev) => ({
     ...prev,
     manualPagination: true,
-    onPaginationChange: handlePaginationChange,
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
     state: {
       ...prev.state,
@@ -182,7 +169,11 @@ export default function MessagesPage() {
           </Button>
         )}
       </DataTable>
-      <DataTablePagination table={table} />
+      <DataTablePagination
+        table={table}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
     </div>
   );
 }
