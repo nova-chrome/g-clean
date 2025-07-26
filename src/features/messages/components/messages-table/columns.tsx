@@ -48,7 +48,9 @@ export const columns: ColumnDef<Message>[] = [
   },
   {
     accessorKey: "subject",
-    header: "Subject",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Subject" />
+    ),
     cell: function SubjectCell({ row }) {
       const trpc = useTRPC();
       const queryClient = useQueryClient();

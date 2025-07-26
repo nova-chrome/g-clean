@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, arrayOverlaps, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, arrayOverlaps, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { messages } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
@@ -14,11 +14,13 @@ export const messagesRouter = createTRPCRouter({
         offset: z.number().min(0).default(0),
         search: z.string().optional(),
         labels: z.array(z.string()).optional(),
+        sortBy: z.enum(["date", "subject", "from"]).optional(),
+        sortOrder: z.enum(["asc", "desc"]).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       const { db, auth } = ctx;
-      const { limit, offset, search, labels } = input;
+      const { limit, offset, search, labels, sortBy, sortOrder } = input;
       const userId = auth.userId;
 
       if (!userId) {
@@ -40,14 +42,21 @@ export const messagesRouter = createTRPCRouter({
         whereConditions.push(arrayOverlaps(messages.labelIds, labels));
       }
 
+      // Build the query with optional sorting
+      const query = db
+        .select()
+        .from(messages)
+        .where(and(...whereConditions));
+
+      // Apply sorting only if both sortBy and sortOrder are provided
+      if (sortBy && sortOrder) {
+        const orderByColumn = messages[sortBy];
+        const orderByDirection = sortOrder === "asc" ? asc : desc;
+        query.orderBy(orderByDirection(orderByColumn));
+      }
+
       const { data: userMessages, error: userMessagesError } = await tryCatch(
-        db
-          .select()
-          .from(messages)
-          .where(and(...whereConditions))
-          .orderBy(desc(messages.date)) // Order by date descending (newest first)
-          .limit(limit)
-          .offset(offset)
+        query.limit(limit).offset(offset)
       );
 
       if (userMessagesError) {

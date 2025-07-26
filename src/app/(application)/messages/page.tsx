@@ -6,7 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { PaginationState } from "@tanstack/react-table";
+import { PaginationState, SortingState } from "@tanstack/react-table";
 import { XIcon } from "lucide-react";
 import {
   parseAsArrayOf,
@@ -30,12 +30,17 @@ export default function MessagesPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const [{ search, labels, page, pageSize }, setQueryStates] = useQueryStates(
+  const [
+    { search, labels, page, pageSize, sortBy, sortOrder },
+    setQueryStates,
+  ] = useQueryStates(
     {
       search: parseAsString.withDefault(""),
       labels: parseAsArrayOf(parseAsString).withDefault([]),
       page: parseAsInteger.withDefault(1),
       pageSize: parseAsInteger.withDefault(10),
+      sortBy: parseAsString.withDefault(""),
+      sortOrder: parseAsString.withDefault(""),
     },
     {
       history: "push",
@@ -53,6 +58,12 @@ export default function MessagesPage() {
     [page, pageSize]
   );
 
+  // Convert sorting URL state to TanStack Table format
+  const sorting = useMemo<SortingState>(() => {
+    if (!sortBy || !sortOrder) return [];
+    return [{ id: sortBy, desc: sortOrder === "desc" }];
+  }, [sortBy, sortOrder]);
+
   const handleSearchChange = (value: string) => {
     setQueryStates({ search: value, page: 1 });
   };
@@ -69,11 +80,38 @@ export default function MessagesPage() {
     setQueryStates({ pageSize: newPageSize, page: 1 });
   };
 
+  const handleSortingChange = (
+    updaterOrValue: SortingState | ((old: SortingState) => SortingState)
+  ) => {
+    const newSorting =
+      typeof updaterOrValue === "function"
+        ? updaterOrValue(sorting)
+        : updaterOrValue;
+
+    if (newSorting.length === 0) {
+      setQueryStates({ sortBy: "", sortOrder: "", page: 1 });
+    } else {
+      const sort = newSorting[0];
+      setQueryStates({
+        sortBy: sort.id,
+        sortOrder: sort.desc ? "desc" : "asc",
+        page: 1,
+      });
+    }
+  };
+
   const getMySyncedMessagesQuery = useQuery({
     ...trpc.messages.getMySyncedMessages.queryOptions({
       limit: pagination.pageSize,
       offset: pagination.pageIndex * pagination.pageSize,
       search: debouncedSearch,
+      ...(sortBy &&
+        sortOrder &&
+        ["date", "subject", "from"].includes(sortBy) &&
+        ["asc", "desc"].includes(sortOrder) && {
+          sortBy: sortBy as "date" | "subject" | "from",
+          sortOrder: sortOrder as "asc" | "desc",
+        }),
       ...(labels.length > 0 && { labels }),
     }),
     select: (data) => data,
@@ -122,14 +160,17 @@ export default function MessagesPage() {
   table.setOptions((prev) => ({
     ...prev,
     manualPagination: true,
+    manualSorting: true,
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
     state: {
       ...prev.state,
       pagination,
+      sorting,
       columnFilters: [
         ...(labels.length > 0 ? [{ id: "labels", value: labels }] : []),
       ],
     },
+    onSortingChange: handleSortingChange,
   }));
 
   useEffect(() => {
@@ -144,6 +185,13 @@ export default function MessagesPage() {
           limit: pagination.pageSize,
           offset: nextPageOffset,
           search: debouncedSearch,
+          ...(sortBy &&
+            sortOrder &&
+            ["date", "subject", "from"].includes(sortBy) &&
+            ["asc", "desc"].includes(sortOrder) && {
+              sortBy: sortBy as "date" | "subject" | "from",
+              sortOrder: sortOrder as "asc" | "desc",
+            }),
           ...(labels.length > 0 && { labels }),
         }),
       });
@@ -153,6 +201,8 @@ export default function MessagesPage() {
     pagination.pageSize,
     debouncedSearch,
     labels,
+    sortBy,
+    sortOrder,
     getMySyncedMessagesQuery.data?.totalCount,
     queryClient,
     trpc.messages.getMySyncedMessages,
