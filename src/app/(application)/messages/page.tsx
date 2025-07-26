@@ -35,6 +35,22 @@ export default function MessagesPage() {
     trpc.messages.getMessagesLabels.queryOptions()
   );
 
+  const table = useDataTableDefaults({
+    data: getMySyncedMessagesQuery.data?.data || [],
+    columns,
+  });
+
+  table.setOptions((prev) => ({
+    ...prev,
+    manualPagination: true,
+    onPaginationChange: setPagination,
+    rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
+    state: {
+      ...prev.state,
+      pagination,
+    },
+  }));
+
   useEffect(() => {
     const nextPageOffset = (pagination.pageIndex + 1) * pagination.pageSize;
 
@@ -56,22 +72,6 @@ export default function MessagesPage() {
     queryClient,
     trpc.messages.getMySyncedMessages,
   ]);
-
-  const table = useDataTableDefaults({
-    data: getMySyncedMessagesQuery.data?.data || [],
-    columns,
-  });
-
-  table.setOptions((prev) => ({
-    ...prev,
-    manualPagination: true,
-    onPaginationChange: setPagination,
-    rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
-    state: {
-      ...prev.state,
-      pagination,
-    },
-  }));
 
   return (
     <div className="container mx-auto py-10 space-y-3">
