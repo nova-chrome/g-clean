@@ -87,16 +87,24 @@ export default function MessagesPage() {
   const syncGmailMutation = useMutation(
     trpc.messages.syncGmailWithMessages.mutationOptions({
       onMutate: () => {
-        toast.loading("Syncing your Gmail messages...");
-      },
-      onSuccess: () => {
-        toast.success("Successfully synced Gmail messages!");
-        queryClient.invalidateQueries({
-          queryKey: ["trpc", "messages", "getMySyncedMessages"],
+        toast.info("Starting Gmail sync...", {
+          description: "This may take a few moments",
         });
       },
+      onSuccess: (data) => {
+        toast.success("Gmail sync completed!", {
+          description: `${data.totalSynced} messages synced.`,
+        });
+
+        // Invalidate and refetch messages
+        void queryClient.invalidateQueries(
+          trpc.messages.getMySyncedMessages.queryFilter()
+        );
+      },
       onError: (error) => {
-        toast.error(`Failed to sync Gmail messages: ${error.message}`);
+        toast.error("Sync failed", {
+          description: error.message,
+        });
       },
     })
   );
