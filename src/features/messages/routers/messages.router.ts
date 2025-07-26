@@ -6,6 +6,103 @@ import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
 import { tryCatch } from "~/util/try-catch";
 import { convertGmailMessageToMessage } from "./converter";
 
+// Add type definitions for grouped senders
+export type SenderGroup = {
+  organizationName: string;
+  emails: Array<{
+    email: string;
+    messageCount: number;
+    latestDate: Date | null;
+  }>;
+  totalMessages: number;
+};
+
+// Helper function to extract organization name from email
+function extractOrganizationName(email: string): string {
+  const domain = email.split("@")[1]?.toLowerCase();
+
+  if (!domain) return email;
+
+  // Handle common patterns
+  let cleanDomain = domain;
+
+  // Remove common prefixes
+  cleanDomain = cleanDomain.replace(
+    /^(mail|email|noreply|no-reply|alerts?)\./,
+    ""
+  );
+
+  // Extract main domain from subdomains
+  const subdomainMatch = cleanDomain.match(/^[^.]+\.([^.]+\.[^.]+)$/);
+  if (subdomainMatch) {
+    cleanDomain = subdomainMatch[1];
+  }
+
+  // Handle specific cases
+  const specificRules: Record<string, string> = {
+    "amazon.com": "Amazon",
+    "amazonses.com": "Amazon",
+    "amazon-corp.com": "Amazon",
+    "google.com": "Google",
+    "gmail.com": "Google",
+    "microsoft.com": "Microsoft",
+    "outlook.com": "Microsoft",
+    "github.com": "GitHub",
+    "linkedin.com": "LinkedIn",
+    "chase.com": "Chase Bank",
+    "jpmchase.com": "Chase Bank",
+    "mcmap.chase.com": "Chase Bank",
+  };
+
+  if (specificRules[cleanDomain]) {
+    return specificRules[cleanDomain];
+  }
+
+  // Convert domain to display name
+  const mainName = cleanDomain.split(".")[0];
+  return mainName.charAt(0).toUpperCase() + mainName.slice(1);
+}
+
+// Helper function to group senders by organization
+function groupSendersByOrganization(
+  senders: Array<{
+    from: string;
+    messageCount: number;
+    latestDate: Date | null;
+  }>
+): SenderGroup[] {
+  const groups = new Map<string, SenderGroup>();
+
+  for (const sender of senders) {
+    const orgName = extractOrganizationName(sender.from);
+
+    if (!groups.has(orgName)) {
+      groups.set(orgName, {
+        organizationName: orgName,
+        emails: [],
+        totalMessages: 0,
+      });
+    }
+
+    const group = groups.get(orgName)!;
+    const messageCount = Number(sender.messageCount); // Ensure it's a number
+    group.emails.push({
+      email: sender.from,
+      messageCount: messageCount,
+      latestDate: sender.latestDate,
+    });
+    group.totalMessages += messageCount;
+  }
+
+  // Sort groups by total message count (descending)
+  return Array.from(groups.values())
+    .sort((a, b) => b.totalMessages - a.totalMessages)
+    .map((group) => ({
+      ...group,
+      emails: group.emails.sort((a, b) => b.messageCount - a.messageCount),
+    }));
+}
+
 export const messagesRouter = createTRPCRouter({
   getMySyncedMessages: protectedProcedure
     .input(
@@ -149,6 +246,41 @@ export const messagesRouter = createTRPCRouter({
         })) || []
     );
   }),
+  getSendersGrouped: protectedProcedure.query(async ({ ctx }) => {
+    const { db, auth } = ctx;
+    const userId = auth.userId;
+
+    if (!userId) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User not authenticated",
+      });
+    }
+
+    // Get all unique senders with message counts and latest dates
+    const { data: sendersData, error } = await tryCatch(
+      db
+        .select({
+          from: messages.from,
+          messageCount: sql<number>`count(*)::integer`,
+          latestDate: sql<Date | null>`max(${messages.date})`,
+        })
+        .from(messages)
+        .where(eq(messages.userId, userId))
+        .groupBy(messages.from)
+        .orderBy(desc(sql`count(*)`))
+    );
+
+    if (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch senders",
+      });
+    }
+
+    // Group senders by organization
+    return groupSendersByOrganization(sendersData);
+  }),
   syncGmailWithMessages: protectedProcedure.mutation(async ({ ctx }) => {
     const { db, gmail, auth } = ctx;
     const userId = auth.userId;
@@ -169,7 +301,7 @@ export const messagesRouter = createTRPCRouter({
         gmail.users.messages.list({
           userId: "me",
           maxResults: 100,
-          includeSpamTrash: true,
+          includeSpamTrash: false, // Changed: Don't include spam/trash to avoid inflated counts
           pageToken,
         })
       );
