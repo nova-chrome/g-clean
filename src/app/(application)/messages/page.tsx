@@ -6,12 +6,15 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { PaginationState } from "@tanstack/react-table";
+import { XIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "~/components/ui/button";
 import { DataTable } from "~/components/ui/data-table/data-table";
+import { DataTableFacetedFilter } from "~/components/ui/data-table/data-table-faceted-filter";
 import { DataTablePagination } from "~/components/ui/data-table/data-table-pagination";
 import { useDataTableDefaults } from "~/components/ui/data-table/use-data-table-defaults";
+import { Input } from "~/components/ui/input";
 import { columns } from "~/features/messages/components/messages-table/columns";
-import { DashboardFilters } from "~/features/messages/components/messages-table/dashboard-filters";
 import { useDebounceValue } from "~/hooks/use-debounce-value";
 import { useTRPC } from "~/lib/client/trpc/client";
 
@@ -102,14 +105,38 @@ export default function MessagesPage() {
         isLoading={getMySyncedMessagesQuery.isLoading}
         isFetching={getMySyncedMessagesQuery.isFetching}
       >
-        <DashboardFilters
-          table={table}
-          labels={getGmailLabelsQuery.data || []}
-          search={search}
-          onSearchChange={handleSearchChange}
-          onLabelsChange={handleLabelsChange}
-          isSearching={getMySyncedMessagesQuery.isFetching}
-        />
+        <div className="relative max-w-sm">
+          <Input
+            placeholder="Filter subjects..."
+            value={search}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            className="pr-8"
+          />
+        </div>
+
+        {table.getColumn("labels") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("labels")}
+            title="Labels"
+            options={getGmailLabelsQuery.data || []}
+            onFilterChange={handleLabelsChange}
+          />
+        )}
+
+        {(table.getState().columnFilters.length > 0 || search) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              table.resetColumnFilters();
+              handleSearchChange("");
+              handleLabelsChange([]);
+            }}
+          >
+            Reset
+            <XIcon />
+          </Button>
+        )}
       </DataTable>
       <DataTablePagination table={table} />
     </div>
