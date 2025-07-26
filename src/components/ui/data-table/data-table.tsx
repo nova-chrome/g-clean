@@ -26,6 +26,7 @@ interface DataTableProps<TData> {
   table: TanstackTable<TData>;
   isLoading?: boolean;
   isFetching?: boolean;
+  onSyncMailbox?: () => void;
 }
 
 export function DataTable<TData>({
@@ -33,6 +34,7 @@ export function DataTable<TData>({
   children,
   isLoading = false,
   isFetching = false,
+  onSyncMailbox,
 }: PropsWithChildren<DataTableProps<TData>>) {
   return (
     <div className="space-y-4">
@@ -41,7 +43,7 @@ export function DataTable<TData>({
 
         <DataTableViewOptions table={table} />
 
-        <Button variant="default" size="sm">
+        <Button variant="default" size="sm" onClick={onSyncMailbox}>
           Sync Full Mailbox
         </Button>
 

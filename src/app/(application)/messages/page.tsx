@@ -2,6 +2,7 @@
 
 import {
   keepPreviousData,
+  useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ import {
   useQueryStates,
 } from "nuqs";
 import { useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { DataTable } from "~/components/ui/data-table/data-table";
 import { DataTableFacetedFilter } from "~/components/ui/data-table/data-table-faceted-filter";
@@ -82,6 +84,23 @@ export default function MessagesPage() {
     trpc.messages.getMessagesLabels.queryOptions()
   );
 
+  const syncGmailMutation = useMutation(
+    trpc.messages.syncGmailWithMessages.mutationOptions({
+      onMutate: () => {
+        toast.loading("Syncing your Gmail messages...");
+      },
+      onSuccess: () => {
+        toast.success("Successfully synced Gmail messages!");
+        queryClient.invalidateQueries({
+          queryKey: ["trpc", "messages", "getMySyncedMessages"],
+        });
+      },
+      onError: (error) => {
+        toast.error(`Failed to sync Gmail messages: ${error.message}`);
+      },
+    })
+  );
+
   const table = useDataTableDefaults({
     data: getMySyncedMessagesQuery.data?.data || [],
     columns,
@@ -132,6 +151,7 @@ export default function MessagesPage() {
         table={table}
         isLoading={getMySyncedMessagesQuery.isLoading}
         isFetching={getMySyncedMessagesQuery.isFetching}
+        onSyncMailbox={() => syncGmailMutation.mutate()}
       >
         <div className="relative max-w-sm">
           <Input
