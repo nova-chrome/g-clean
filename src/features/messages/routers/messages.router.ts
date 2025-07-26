@@ -152,4 +152,27 @@ export const messagesRouter = createTRPCRouter({
 
       return userMessage[0];
     }),
+  getMessagesLabels: protectedProcedure.query(async ({ ctx }) => {
+    const { gmail } = ctx;
+
+    const { data: labels, error: labelsError } = await tryCatch(
+      gmail.users.labels.list({ userId: "me", prettyPrint: true })
+    );
+
+    if (labelsError) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch message labels",
+      });
+    }
+
+    return (
+      labels.data.labels
+        ?.filter((label) => label.labelListVisibility)
+        .map((label) => ({
+          label: label.name || "",
+          value: label.id || "",
+        })) || []
+    );
+  }),
 });

@@ -4,16 +4,16 @@ import { Fragment } from "react";
 import { DataTableFacetedFilter } from "~/components/data-table-faceted-filter";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Message } from "~/lib/server/db/schema";
+import { Label } from "~/lib/server/db/schema";
 
 interface DashboardFiltersProps<TData> {
   table: Table<TData>;
-  messages: Message[];
+  labels: Label[];
 }
 
 export function DashboardFilters<TData>({
   table,
-  messages,
+  labels,
 }: DashboardFiltersProps<TData>) {
   return (
     <Fragment>
@@ -30,17 +30,7 @@ export function DashboardFilters<TData>({
         <DataTableFacetedFilter
           column={table.getColumn("labels")}
           title="Labels"
-          options={[
-            ...new Set(
-              messages
-                .map((msg) => msg.labelIds)
-                .flat()
-                .filter(Boolean)
-            ),
-          ].map((labelId) => ({
-            label: labelId || "",
-            value: labelId || "",
-          }))}
+          options={labels}
         />
       )}
 

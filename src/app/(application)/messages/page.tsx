@@ -11,11 +11,15 @@ export default function MessagesPage() {
 
   const getMySyncedMessagesQuery = useQuery({
     ...trpc.messages.getMySyncedMessages.queryOptions({
-      limit: 100, // Get 100 messages for table pagination
+      limit: 100,
       offset: 0,
     }),
     select: (data) => data.data,
   });
+
+  const getGmailLabelsQuery = useQuery(
+    trpc.messages.getMessagesLabels.queryOptions()
+  );
 
   return (
     <div className="container mx-auto py-10">
@@ -27,7 +31,7 @@ export default function MessagesPage() {
         {(table) => (
           <DashboardFilters
             table={table}
-            messages={getMySyncedMessagesQuery.data || []}
+            labels={getGmailLabelsQuery.data || []}
           />
         )}
       </DataTable>

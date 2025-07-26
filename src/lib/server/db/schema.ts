@@ -15,3 +15,9 @@ export const messages = pgTable("messages", {
   subject: text("subject"),
   to: text("to"),
 });
+
+// -----===[ Non-DB ]===-----
+export type Label = {
+  label: string;
+  value: string;
+};
