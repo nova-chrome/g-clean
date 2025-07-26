@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { PropsWithChildren } from "react";
 import { ThemeProvider } from "~/components/theme-provider";
+import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/lib/client/trpc/client";
 import "./globals.css";
 
@@ -38,7 +39,10 @@ export default function RootLayout({ children }: Readonly<PropsWithChildren>) {
               enableSystem
               disableTransitionOnChange
             >
-              <NuqsAdapter>{children}</NuqsAdapter>
+              <NuqsAdapter>
+                {children}
+                <Toaster />
+              </NuqsAdapter>
             </ThemeProvider>
           </body>
         </html>
