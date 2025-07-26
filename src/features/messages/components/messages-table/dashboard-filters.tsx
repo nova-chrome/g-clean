@@ -1,10 +1,9 @@
 import { Table } from "@tanstack/react-table";
 import { Loader2Icon, XIcon } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment } from "react";
 import { Button } from "~/components/ui/button";
 import { DataTableFacetedFilter } from "~/components/ui/data-table/data-table-faceted-filter";
 import { Input } from "~/components/ui/input";
-import { useDebounceValue } from "~/hooks/use-debounce-value";
 import { Label } from "~/lib/server/db/schema";
 
 interface DashboardFiltersProps<TData> {
@@ -22,21 +21,13 @@ export function DashboardFilters<TData>({
   onSearchChange,
   isSearching = false,
 }: DashboardFiltersProps<TData>) {
-  const [localSearch, setLocalSearch] = useState(search);
-  const debouncedSearch = useDebounceValue(localSearch, 300);
-
-  // Trigger search when debounced value changes
-  useEffect(() => {
-    onSearchChange(debouncedSearch);
-  }, [debouncedSearch, onSearchChange]);
-
   return (
     <Fragment>
       <div className="relative max-w-sm">
         <Input
           placeholder="Filter subjects..."
-          value={localSearch}
-          onChange={(event) => setLocalSearch(event.target.value)}
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
           className="pr-8"
         />
         {isSearching && (
@@ -60,7 +51,6 @@ export function DashboardFilters<TData>({
           size="sm"
           onClick={() => {
             table.resetColumnFilters();
-            setLocalSearch("");
             onSearchChange("");
           }}
         >

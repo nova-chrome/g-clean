@@ -12,6 +12,7 @@ import { DataTablePagination } from "~/components/ui/data-table/data-table-pagin
 import { useDataTableDefaults } from "~/components/ui/data-table/use-data-table-defaults";
 import { columns } from "~/features/messages/components/messages-table/columns";
 import { DashboardFilters } from "~/features/messages/components/messages-table/dashboard-filters";
+import { useDebounceValue } from "~/hooks/use-debounce-value";
 import { useTRPC } from "~/lib/client/trpc/client";
 
 export default function MessagesPage() {
@@ -22,6 +23,7 @@ export default function MessagesPage() {
     pageSize: 10,
   });
   const [search, setSearch] = useState<string>("");
+  const debouncedSearch = useDebounceValue(search, 300);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -33,7 +35,7 @@ export default function MessagesPage() {
     ...trpc.messages.getMySyncedMessages.queryOptions({
       limit: pagination.pageSize,
       offset: pagination.pageIndex * pagination.pageSize,
-      search,
+      search: debouncedSearch,
     }),
     select: (data) => data,
     placeholderData: keepPreviousData,
@@ -70,14 +72,14 @@ export default function MessagesPage() {
         ...trpc.messages.getMySyncedMessages.queryOptions({
           limit: pagination.pageSize,
           offset: nextPageOffset,
-          search: search,
+          search: debouncedSearch,
         }),
       });
     }
   }, [
     pagination.pageIndex,
     pagination.pageSize,
-    search,
+    debouncedSearch,
     getMySyncedMessagesQuery.data?.totalCount,
     queryClient,
     trpc.messages.getMySyncedMessages,
