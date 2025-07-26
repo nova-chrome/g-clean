@@ -25,12 +25,22 @@ export function convertGmailMessageToMessage(
     (header) => header.name?.toLowerCase() === "to"
   )?.value;
 
+  // Convert date string to Date object
+  let parsedDate: Date | null = null;
+  if (dateHeader) {
+    const date = new Date(dateHeader);
+    // Check if the date is valid
+    if (!isNaN(date.getTime())) {
+      parsedDate = date;
+    }
+  }
+
   return {
     body: convertGmailMessageBodyOrPartsToBody(
       message.payload?.body,
       message.payload?.parts
     ),
-    date: dateHeader || "",
+    date: parsedDate,
     id: message.id || "",
     labelIds: message.labelIds || [],
     from: extractEmailAddress(fromHeader || ""),

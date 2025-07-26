@@ -93,9 +93,8 @@ function getLabelColor(labelId: string) {
   return colors[labelId] || "bg-gray-100 text-gray-800";
 }
 
-function formatDate(dateString: string | null) {
-  if (!dateString) return "No date";
-  const date = new Date(dateString);
+function formatDate(date: Date | null) {
+  if (!date) return "No date";
   return date.toLocaleDateString("en-US", {
     weekday: "short",
     year: "numeric",

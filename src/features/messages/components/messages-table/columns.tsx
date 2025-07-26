@@ -110,8 +110,11 @@ export const columns: ColumnDef<Message>[] = [
   {
     id: "date",
     sortingFn: (a, b) => {
-      const dateA = new Date(a.getValue("date"));
-      const dateB = new Date(b.getValue("date"));
+      const dateA = a.getValue<Date | null>("date");
+      const dateB = b.getValue<Date | null>("date");
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1;
+      if (!dateB) return -1;
       return dateA.getTime() - dateB.getTime();
     },
     accessorFn: (row) => row.date,
@@ -119,8 +122,7 @@ export const columns: ColumnDef<Message>[] = [
       <DataTableColumnHeader column={column} title="Date" />
     ),
     cell: ({ getValue }) => {
-      const value = getValue<string | undefined>();
-      const date = value ? new Date(value) : undefined;
+      const date = getValue<Date | null>();
       return date?.toLocaleDateString(undefined, {
         year: "numeric",
         month: "short",
@@ -133,8 +135,7 @@ export const columns: ColumnDef<Message>[] = [
     accessorFn: (row) => row.date,
     header: "Time",
     cell: ({ getValue }) => {
-      const value = getValue<string | undefined>();
-      const date = value ? new Date(value) : undefined;
+      const date = getValue<Date | null>();
       return date?.toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit",
