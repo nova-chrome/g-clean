@@ -87,7 +87,7 @@ export default function MessagesPage() {
   const syncGmailMutation = useMutation(
     trpc.messages.syncGmailWithMessages.mutationOptions({
       onMutate: () => {
-        toast.info("Starting Gmail sync...", {
+        toast.loading("Starting Gmail sync...", {
           description: "This may take a few moments",
         });
       },
