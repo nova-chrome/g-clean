@@ -49,7 +49,6 @@ export default function MessagesPage() {
 
   const debouncedSearch = useDebounceValue(search, 300);
 
-  // Convert 1-based page to 0-based pageIndex for TanStack Table
   const pagination = useMemo<PaginationState>(
     () => ({
       pageIndex: page - 1,
@@ -58,9 +57,9 @@ export default function MessagesPage() {
     [page, pageSize]
   );
 
-  // Convert sorting URL state to TanStack Table format
   const sorting = useMemo<SortingState>(() => {
     if (!sortBy || !sortOrder) return [];
+
     return [{ id: sortBy, desc: sortOrder === "desc" }];
   }, [sortBy, sortOrder]);
 
@@ -80,23 +79,30 @@ export default function MessagesPage() {
     setQueryStates({ pageSize: newPageSize, page: 1 });
   };
 
+  const handleSortChange = (
+    columnId: string,
+    direction: "asc" | "desc" | null
+  ) => {
+    if (direction === null) {
+      setQueryStates({ sortBy: "", sortOrder: "", page: 1 });
+    } else {
+      setQueryStates({ sortBy: columnId, sortOrder: direction, page: 1 });
+    }
+  };
+
   const handleSortingChange = (
     updaterOrValue: SortingState | ((old: SortingState) => SortingState)
   ) => {
-    const newSorting =
+    const newSortingState =
       typeof updaterOrValue === "function"
         ? updaterOrValue(sorting)
         : updaterOrValue;
 
-    if (newSorting.length === 0) {
-      setQueryStates({ sortBy: "", sortOrder: "", page: 1 });
+    if (newSortingState.length === 0) {
+      handleSortChange("", null);
     } else {
-      const sort = newSorting[0];
-      setQueryStates({
-        sortBy: sort.id,
-        sortOrder: sort.desc ? "desc" : "asc",
-        page: 1,
-      });
+      const { id, desc } = newSortingState[0];
+      handleSortChange(id, desc ? "desc" : "asc");
     }
   };
 
@@ -157,20 +163,22 @@ export default function MessagesPage() {
     columns,
   });
 
+  // Configure table with our sorting setup
+  // Flow: User clicks column header → TanStack Table → handleSortingChange → URL params → backend
   table.setOptions((prev) => ({
     ...prev,
     manualPagination: true,
-    manualSorting: true,
+    manualSorting: true, // Tell table we handle sorting ourselves
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
     state: {
       ...prev.state,
       pagination,
-      sorting,
+      sorting, // Current sort state from URL
       columnFilters: [
         ...(labels.length > 0 ? [{ id: "labels", value: labels }] : []),
       ],
     },
-    onSortingChange: handleSortingChange,
+    onSortingChange: handleSortingChange, // Called when user clicks column headers
   }));
 
   useEffect(() => {
@@ -235,12 +243,13 @@ export default function MessagesPage() {
           />
         )}
 
-        {(table.getState().columnFilters.length > 0 || search) && (
+        {(table.getState().columnFilters.length > 0 || search || sortBy) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               table.resetColumnFilters();
+              handleSortChange("", null);
               setQueryStates({
                 search: "",
                 labels: [],
