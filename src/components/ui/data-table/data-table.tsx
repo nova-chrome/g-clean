@@ -1,9 +1,10 @@
 "use client";
 
 import { flexRender, Table as TanstackTable } from "@tanstack/react-table";
+import { Info } from "lucide-react";
 import { PropsWithChildren } from "react";
+import { Button } from "~/components/ui/button";
 import { DataTableViewOptions } from "~/components/ui/data-table/data-table-view-options";
-
 import { Skeleton } from "~/components/ui/skeleton";
 import {
   Table,
@@ -13,6 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { Progress } from "../progress";
 
 interface DataTableProps<TData> {
@@ -33,6 +40,25 @@ export function DataTable<TData>({
         {children}
 
         <DataTableViewOptions table={table} />
+
+        <Button variant="default" size="sm">
+          Sync Full Mailbox
+        </Button>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                This will sync your gmail messages with the application and may
+                take some time to complete depending on the amount of messages
+                you have.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="rounded-md border">
