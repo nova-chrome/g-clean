@@ -7,7 +7,13 @@ import {
 } from "@tanstack/react-query";
 import { PaginationState } from "@tanstack/react-table";
 import { XIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  parseAsArrayOf,
+  parseAsInteger,
+  parseAsString,
+  useQueryStates,
+} from "nuqs";
+import { useCallback, useEffect, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { DataTable } from "~/components/ui/data-table/data-table";
 import { DataTableFacetedFilter } from "~/components/ui/data-table/data-table-faceted-filter";
@@ -21,25 +27,57 @@ import { useTRPC } from "~/lib/client/trpc/client";
 export default function MessagesPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-  const [search, setSearch] = useState<string>("");
-  const [labels, setLabels] = useState<string[]>([]);
+
+  const [{ search, labels, page, pageSize }, setQueryStates] = useQueryStates(
+    {
+      search: parseAsString.withDefault(""),
+      labels: parseAsArrayOf(parseAsString).withDefault([]),
+      page: parseAsInteger.withDefault(1),
+      pageSize: parseAsInteger.withDefault(10),
+    },
+    {
+      history: "push",
+    }
+  );
+
   const debouncedSearch = useDebounceValue(search, 300);
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
-    // Reset to first page when searching
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-  }, []);
+  // Convert 1-based page to 0-based pageIndex for TanStack Table
+  const pagination = useMemo<PaginationState>(
+    () => ({
+      pageIndex: page - 1,
+      pageSize,
+    }),
+    [page, pageSize]
+  );
 
-  const handleLabelsChange = useCallback((newLabels: string[]) => {
-    setLabels(newLabels);
-    // Reset to first page when filtering
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-  }, []);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setQueryStates({ search: value, page: 1 });
+    },
+    [setQueryStates]
+  );
+
+  const handleLabelsChange = useCallback(
+    (newLabels: string[]) => {
+      setQueryStates({ labels: newLabels, page: 1 });
+    },
+    [setQueryStates]
+  );
+
+  const handlePaginationChange = useCallback(
+    (
+      updater: PaginationState | ((old: PaginationState) => PaginationState)
+    ) => {
+      const newPagination =
+        typeof updater === "function" ? updater(pagination) : updater;
+      setQueryStates({
+        page: newPagination.pageIndex + 1, // Convert back to 1-based
+        pageSize: newPagination.pageSize,
+      });
+    },
+    [pagination, setQueryStates]
+  );
 
   const getMySyncedMessagesQuery = useQuery({
     ...trpc.messages.getMySyncedMessages.queryOptions({
@@ -64,11 +102,14 @@ export default function MessagesPage() {
   table.setOptions((prev) => ({
     ...prev,
     manualPagination: true,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
     state: {
       ...prev.state,
       pagination,
+      columnFilters: [
+        ...(labels.length > 0 ? [{ id: "labels", value: labels }] : []),
+      ],
     },
   }));
 
@@ -129,8 +170,11 @@ export default function MessagesPage() {
             size="sm"
             onClick={() => {
               table.resetColumnFilters();
-              handleSearchChange("");
-              handleLabelsChange([]);
+              setQueryStates({
+                search: "",
+                labels: [],
+                page: 1,
+              });
             }}
           >
             Reset
