@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { PaginationState } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "~/components/ui/data-table/data-table";
 import { DataTablePagination } from "~/components/ui/data-table/data-table-pagination";
 import { useDataTableDefaults } from "~/components/ui/data-table/use-data-table-defaults";
@@ -21,11 +21,19 @@ export default function MessagesPage() {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [search, setSearch] = useState<string>("");
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    // Reset to first page when searching
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
 
   const getMySyncedMessagesQuery = useQuery({
     ...trpc.messages.getMySyncedMessages.queryOptions({
       limit: pagination.pageSize,
       offset: pagination.pageIndex * pagination.pageSize,
+      search,
     }),
     select: (data) => data,
     placeholderData: keepPreviousData,
@@ -62,12 +70,14 @@ export default function MessagesPage() {
         ...trpc.messages.getMySyncedMessages.queryOptions({
           limit: pagination.pageSize,
           offset: nextPageOffset,
+          search: search,
         }),
       });
     }
   }, [
     pagination.pageIndex,
     pagination.pageSize,
+    search,
     getMySyncedMessagesQuery.data?.totalCount,
     queryClient,
     trpc.messages.getMySyncedMessages,
@@ -83,6 +93,9 @@ export default function MessagesPage() {
         <DashboardFilters
           table={table}
           labels={getGmailLabelsQuery.data || []}
+          search={search}
+          onSearchChange={handleSearchChange}
+          isSearching={getMySyncedMessagesQuery.isFetching}
         />
       </DataTable>
       <DataTablePagination table={table} />
