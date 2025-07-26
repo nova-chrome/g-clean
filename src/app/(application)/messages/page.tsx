@@ -152,6 +152,7 @@ export default function MessagesPage() {
         isLoading={getMySyncedMessagesQuery.isLoading}
         isFetching={getMySyncedMessagesQuery.isFetching}
         onSyncMailbox={() => syncGmailMutation.mutate()}
+        isSyncing={syncGmailMutation.isPending}
       >
         <div className="relative max-w-sm">
           <Input

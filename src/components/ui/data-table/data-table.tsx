@@ -1,7 +1,7 @@
 "use client";
 
 import { flexRender, Table as TanstackTable } from "@tanstack/react-table";
-import { Info } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 import { PropsWithChildren } from "react";
 import { Button } from "~/components/ui/button";
 import { DataTableViewOptions } from "~/components/ui/data-table/data-table-view-options";
@@ -27,6 +27,7 @@ interface DataTableProps<TData> {
   isLoading?: boolean;
   isFetching?: boolean;
   onSyncMailbox?: () => void;
+  isSyncing?: boolean;
 }
 
 export function DataTable<TData>({
@@ -35,6 +36,7 @@ export function DataTable<TData>({
   isLoading = false,
   isFetching = false,
   onSyncMailbox,
+  isSyncing = false,
 }: PropsWithChildren<DataTableProps<TData>>) {
   return (
     <div className="space-y-4">
@@ -43,7 +45,13 @@ export function DataTable<TData>({
 
         <DataTableViewOptions table={table} />
 
-        <Button variant="default" size="sm" onClick={onSyncMailbox}>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onSyncMailbox}
+          disabled={isSyncing}
+        >
+          {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Sync Full Mailbox
         </Button>
 
