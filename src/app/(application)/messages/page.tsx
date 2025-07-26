@@ -23,6 +23,7 @@ export default function MessagesPage() {
     pageSize: 10,
   });
   const [search, setSearch] = useState<string>("");
+  const [labels, setLabels] = useState<string[]>([]);
   const debouncedSearch = useDebounceValue(search, 300);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -36,6 +37,7 @@ export default function MessagesPage() {
       limit: pagination.pageSize,
       offset: pagination.pageIndex * pagination.pageSize,
       search: debouncedSearch,
+      ...(labels.length > 0 && { labels }),
     }),
     select: (data) => data,
     placeholderData: keepPreviousData,
@@ -54,10 +56,33 @@ export default function MessagesPage() {
     ...prev,
     manualPagination: true,
     onPaginationChange: setPagination,
+    onColumnFiltersChange: (updaterOrValue) => {
+      const newFilters =
+        typeof updaterOrValue === "function"
+          ? updaterOrValue(prev.state?.columnFilters || [])
+          : updaterOrValue;
+
+      const labelsFilter = newFilters.find((filter) => filter.id === "labels");
+      const newLabels = (labelsFilter?.value as string[]) || [];
+
+      if (JSON.stringify(newLabels) !== JSON.stringify(labels)) {
+        setLabels(newLabels);
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      }
+    },
     rowCount: getMySyncedMessagesQuery.data?.totalCount ?? 0,
     state: {
       ...prev.state,
       pagination,
+      columnFilters:
+        labels.length > 0
+          ? [
+              {
+                id: "labels",
+                value: labels,
+              },
+            ]
+          : [],
     },
   }));
 
@@ -73,6 +98,7 @@ export default function MessagesPage() {
           limit: pagination.pageSize,
           offset: nextPageOffset,
           search: debouncedSearch,
+          ...(labels.length > 0 && { labels }),
         }),
       });
     }
@@ -80,6 +106,7 @@ export default function MessagesPage() {
     pagination.pageIndex,
     pagination.pageSize,
     debouncedSearch,
+    labels,
     getMySyncedMessagesQuery.data?.totalCount,
     queryClient,
     trpc.messages.getMySyncedMessages,
