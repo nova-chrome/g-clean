@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { messages } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
@@ -11,11 +11,12 @@ export const messagesRouter = createTRPCRouter({
       z.object({
         limit: z.number().min(1).max(100).default(20),
         offset: z.number().min(0).default(0),
+        search: z.string().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       const { db, auth } = ctx;
-      const { limit, offset } = input;
+      const { limit, offset, search } = input;
       const userId = auth.userId;
 
       if (!userId) {
@@ -25,11 +26,18 @@ export const messagesRouter = createTRPCRouter({
         });
       }
 
+      // Build the where conditions
+      const whereConditions = [eq(messages.userId, userId)];
+
+      if (search && search.trim().length > 0) {
+        whereConditions.push(ilike(messages.subject, `%${search.trim()}%`));
+      }
+
       const { data: userMessages, error: userMessagesError } = await tryCatch(
         db
           .select()
           .from(messages)
-          .where(eq(messages.userId, userId))
+          .where(and(...whereConditions))
           .orderBy(desc(messages.date)) // Order by date descending (newest first)
           .limit(limit)
           .offset(offset)
@@ -46,7 +54,7 @@ export const messagesRouter = createTRPCRouter({
         db
           .select({ count: sql`count(*)` })
           .from(messages)
-          .where(eq(messages.userId, userId))
+          .where(and(...whereConditions))
       );
 
       if (totalCountError) {
