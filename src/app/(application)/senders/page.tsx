@@ -7,7 +7,6 @@ import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
-import { SenderGroup } from "~/features/messages/routers/messages.router";
 import { useTRPC } from "~/lib/client/trpc/client";
 
 export default function SendersPage() {
@@ -17,33 +16,28 @@ export default function SendersPage() {
     parseAsString.withDefault("")
   );
 
-  const getSendersGroupedQuery = useQuery({
-    ...trpc.messages.getSendersGrouped.queryOptions(),
+  const getSendersQuery = useQuery({
+    ...trpc.messages.getSenders.queryOptions(),
     select: (data) => data,
     placeholderData: keepPreviousData,
   });
 
-  // Filter groups based on search
-  const filteredGroups =
-    getSendersGroupedQuery.data?.filter((group) => {
+  // Filter senders based on search
+  const filteredSenders =
+    getSendersQuery.data?.filter((sender) => {
       if (!search) return true;
 
       const searchLower = search.toLowerCase();
-      return (
-        group.organizationName.toLowerCase().includes(searchLower) ||
-        group.emails.some((email) =>
-          email.email.toLowerCase().includes(searchLower)
-        )
-      );
+      return sender.name.toLowerCase().includes(searchLower);
     }) || [];
 
-  const totalSenders =
-    getSendersGroupedQuery.data?.reduce(
-      (acc, group) => acc + group.emails.length,
+  const totalSenders = getSendersQuery.data?.length || 0;
+
+  const totalMessages =
+    getSendersQuery.data?.reduce(
+      (acc, sender) => acc + sender.totalMessages,
       0
     ) || 0;
-
-  const totalOrganizations = getSendersGroupedQuery.data?.length || 0;
 
   return (
     <div className="container mx-auto py-10 space-y-6">
@@ -58,11 +52,11 @@ export default function SendersPage() {
         <div className="flex gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <UsersIcon className="h-4 w-4" />
-            <span>{totalOrganizations} organizations</span>
+            <span>{totalSenders} senders</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MailIcon className="h-4 w-4" />
-            <span>{totalSenders} unique senders</span>
+            <span>{totalMessages} total messages</span>
           </div>
         </div>
 
@@ -70,7 +64,7 @@ export default function SendersPage() {
         <div className="relative max-w-md">
           <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search organizations or emails..."
+            placeholder="Search senders..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -79,7 +73,7 @@ export default function SendersPage() {
       </div>
 
       {/* Loading State */}
-      {getSendersGroupedQuery.isLoading && (
+      {getSendersQuery.isLoading && (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}>
@@ -105,7 +99,7 @@ export default function SendersPage() {
       )}
 
       {/* Error State */}
-      {getSendersGroupedQuery.error && (
+      {getSendersQuery.error && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <MailIcon className="h-12 w-12 text-muted-foreground mb-4" />
@@ -113,16 +107,16 @@ export default function SendersPage() {
               Failed to load senders
             </h3>
             <p className="text-muted-foreground text-center">
-              {getSendersGroupedQuery.error.message}
+              {getSendersQuery.error.message}
             </p>
           </CardContent>
         </Card>
       )}
 
       {/* Empty State */}
-      {!getSendersGroupedQuery.isLoading &&
-        !getSendersGroupedQuery.error &&
-        filteredGroups.length === 0 && (
+      {!getSendersQuery.isLoading &&
+        !getSendersQuery.error &&
+        filteredSenders.length === 0 && (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
               <MailIcon className="h-12 w-12 text-muted-foreground mb-4" />
@@ -132,7 +126,7 @@ export default function SendersPage() {
               <p className="text-muted-foreground text-center">
                 {search
                   ? "Try adjusting your search terms or clearing the filter."
-                  : "Sync your emails to see sender organizations."}
+                  : "Sync your emails to see your senders."}
               </p>
             </CardContent>
           </Card>
@@ -140,44 +134,60 @@ export default function SendersPage() {
 
       {/* Senders List */}
       <div className="grid gap-4">
-        {filteredGroups.map((group: SenderGroup) => (
-          <Card
-            key={group.organizationName}
-            className="hover:shadow-md transition-shadow"
-          >
+        {filteredSenders.map((sender) => (
+          <Card key={sender.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <MailIcon className="h-5 w-5 text-muted-foreground" />
-                  <span>{group.organizationName}</span>
+                  <span>{sender.name}</span>
                 </div>
                 <Badge variant="secondary" className="text-xs">
-                  {group.totalMessages} message
-                  {group.totalMessages !== 1 ? "s" : ""}
+                  {sender.totalMessages} message
+                  {sender.totalMessages !== 1 ? "s" : ""}
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {group.emails.map((email) => (
-                  <div
-                    key={email.email}
-                    className="flex justify-between items-center p-2 rounded-md hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-mono text-sm">{email.email}</span>
-                      {email.latestDate && (
-                        <span className="text-xs text-muted-foreground">
-                          Last message:{" "}
-                          {new Date(email.latestDate).toLocaleDateString()}
+                {/* Email addresses */}
+                <div className="space-y-2">
+                  {sender.emails.map((emailData) => (
+                    <div
+                      key={emailData.email}
+                      className="flex justify-between items-center p-2 rounded-md hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-mono text-sm">
+                          {emailData.email}
                         </span>
-                      )}
+                        {emailData.latestDate && (
+                          <span className="text-xs text-muted-foreground">
+                            Last message:{" "}
+                            {new Date(
+                              emailData.latestDate
+                            ).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {emailData.messageCount}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {email.messageCount}
-                    </Badge>
+                  ))}
+                </div>
+
+                {/* Sender info */}
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Sender ID:
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {sender.id}
+                    </span>
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -185,10 +195,10 @@ export default function SendersPage() {
       </div>
 
       {/* Results Footer */}
-      {filteredGroups.length > 0 && (
+      {filteredSenders.length > 0 && (
         <div className="text-center text-sm text-muted-foreground">
-          Showing {filteredGroups.length} organization
-          {filteredGroups.length !== 1 ? "s" : ""}
+          Showing {filteredSenders.length} sender
+          {filteredSenders.length !== 1 ? "s" : ""}
           {search && ` matching "${search}"`}
         </div>
       )}

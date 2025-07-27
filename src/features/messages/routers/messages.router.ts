@@ -157,46 +157,6 @@ async function getOrCreateSender(
   }
 }
 
-// Helper function to group senders by organization
-function groupSendersByOrganization(
-  senders: Array<{
-    from: string;
-    messageCount: number;
-    latestDate: Date | null;
-  }>
-): SenderGroup[] {
-  const groups = new Map<string, SenderGroup>();
-
-  for (const sender of senders) {
-    const orgName = extractOrganizationName(sender.from);
-
-    if (!groups.has(orgName)) {
-      groups.set(orgName, {
-        organizationName: orgName,
-        emails: [],
-        totalMessages: 0,
-      });
-    }
-
-    const group = groups.get(orgName)!;
-    const messageCount = Number(sender.messageCount); // Ensure it's a number
-    group.emails.push({
-      email: sender.from,
-      messageCount: messageCount,
-      latestDate: sender.latestDate,
-    });
-    group.totalMessages += messageCount;
-  }
-
-  // Sort groups by total message count (descending)
-  return Array.from(groups.values())
-    .sort((a, b) => b.totalMessages - a.totalMessages)
-    .map((group) => ({
-      ...group,
-      emails: group.emails.sort((a, b) => b.messageCount - a.messageCount),
-    }));
-}
-
 export const messagesRouter = createTRPCRouter({
   getMySyncedMessages: protectedProcedure
     .input(
@@ -340,7 +300,7 @@ export const messagesRouter = createTRPCRouter({
         })) || []
     );
   }),
-  getSendersGrouped: protectedProcedure.query(async ({ ctx }) => {
+  getSenders: protectedProcedure.query(async ({ ctx }) => {
     const { db, auth } = ctx;
     const userId = auth.userId;
 
@@ -351,29 +311,75 @@ export const messagesRouter = createTRPCRouter({
       });
     }
 
-    // Get all unique senders with message counts and latest dates
-    const { data: sendersData, error } = await tryCatch(
+    // Get all senders with their basic info
+    const { data: sendersData, error: sendersError } = await tryCatch(
       db
         .select({
-          from: messages.from,
-          messageCount: sql<number>`count(*)::integer`,
-          latestDate: sql<Date | null>`max(${messages.date})`,
+          id: senders.id,
+          name: senders.name,
         })
-        .from(messages)
-        .where(eq(messages.userId, userId))
-        .groupBy(messages.from)
-        .orderBy(desc(sql`count(*)`))
+        .from(senders)
+        .where(eq(senders.userId, userId))
+        .orderBy(senders.name)
     );
 
-    if (error) {
+    if (sendersError) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch senders",
       });
     }
 
-    // Group senders by organization
-    return groupSendersByOrganization(sendersData);
+    // For each sender, get their email addresses with message counts and latest dates
+    const sendersWithEmails = await Promise.all(
+      sendersData.map(async (sender) => {
+        const { data: emailsData, error: emailsError } = await tryCatch(
+          db
+            .select({
+              email: messages.from,
+              messageCount: sql<number>`count(*)::integer`,
+              latestDate: sql<Date | null>`max(${messages.date})`,
+            })
+            .from(messages)
+            .where(eq(messages.senderId, sender.id))
+            .groupBy(messages.from)
+            .orderBy(desc(sql`count(*)`))
+        );
+
+        if (emailsError) {
+          console.error(
+            `Failed to fetch emails for sender ${sender.id}:`,
+            emailsError
+          );
+          return {
+            ...sender,
+            emails: [],
+            totalMessages: 0,
+            latestDate: null,
+          };
+        }
+
+        const totalMessages = emailsData.reduce(
+          (sum, email) => sum + email.messageCount,
+          0
+        );
+        const latestDate = emailsData.reduce((latest, email) => {
+          if (!email.latestDate) return latest;
+          if (!latest) return email.latestDate;
+          return email.latestDate > latest ? email.latestDate : latest;
+        }, null as Date | null);
+
+        return {
+          ...sender,
+          emails: emailsData,
+          totalMessages,
+          latestDate,
+        };
+      })
+    );
+
+    // Sort by total message count descending
+    return sendersWithEmails.sort((a, b) => b.totalMessages - a.totalMessages);
   }),
   syncGmailWithMessages: protectedProcedure.mutation(async ({ ctx }) => {
     const { db, gmail, auth } = ctx;
