@@ -1,5 +1,11 @@
 import { InferSelectModel, relations } from "drizzle-orm";
-import { pgTableCreator, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  pgTableCreator,
+  text,
+  timestamp,
+  unique,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { customAlphabet } from "nanoid";
 
 export const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789");
@@ -17,7 +23,7 @@ export const messages = pgTable("messages", {
   snippet: text("snippet"),
   subject: text("subject"),
   to: text("to"),
-  senderId: varchar("sender_id", { length: 191 }),
+  senderId: varchar("sender_id", { length: 191 }).notNull(),
 });
 
 export const messagesRelations = relations(messages, ({ one }) => ({
@@ -28,13 +34,20 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 }));
 
 export type Sender = InferSelectModel<typeof senders>;
-export const senders = pgTable("senders", {
-  id: varchar("id", { length: 191 })
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  userId: text("user_id").notNull(),
-  orgName: text("org_name").notNull(),
-});
+export const senders = pgTable(
+  "senders",
+  {
+    id: varchar("id", { length: 191 })
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+  },
+  (table) => ({
+    // Ensure unique sender name per user
+    uniqueUserSender: unique().on(table.userId, table.name),
+  })
+);
 
 export const sendersRelations = relations(senders, ({ many }) => ({
   messages: many(messages),

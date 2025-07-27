@@ -6,7 +6,7 @@ import { extractEmailAddress } from "../util/extract-email-address";
 export function convertGmailMessageToMessage(
   userId: string,
   message: gmail_v1.Schema$Message
-): Message {
+): Omit<Message, "senderId"> {
   const headers = message?.payload?.headers || [];
 
   const fromHeader = headers.find(

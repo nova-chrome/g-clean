@@ -1,7 +1,9 @@
+import { openai } from "@ai-sdk/openai";
 import { TRPCError } from "@trpc/server";
+import { generateObject } from "ai";
 import { and, arrayOverlaps, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
-import { messages } from "~/lib/server/db/schema";
+import { messages, senders } from "~/lib/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "~/lib/server/trpc/trpc";
 import { tryCatch } from "~/util/try-catch";
 import { convertGmailMessageToMessage } from "./converter";
@@ -61,6 +63,98 @@ function extractOrganizationName(email: string): string {
   // Convert domain to display name
   const mainName = cleanDomain.split(".")[0];
   return mainName.charAt(0).toUpperCase() + mainName.slice(1);
+}
+
+// AI-powered function to determine sender name from email address
+async function determineSenderName(fromEmail: string): Promise<string> {
+  try {
+    const result = await generateObject({
+      model: openai("gpt-4o-mini"),
+      schema: z.object({
+        senderName: z
+          .string()
+          .describe(
+            "The human-readable name or organization name for this email sender"
+          ),
+      }),
+      prompt: `
+        Analyze this email address and determine the most appropriate sender name: "${fromEmail}"
+        
+        Rules:
+        1. If it's from a company/organization, use ONLY the company name (e.g., "GitHub", "Amazon", "LinkedIn")
+        2. If it looks like a personal email (gmail, yahoo, etc.), try to extract a name from the username part if possible, or use the username
+        3. Keep it simple - avoid departmental distinctions like "Support", "Billing", "Notifications"
+        4. Make it human-readable and professional
+        5. Avoid technical prefixes like "noreply-" or "support-"
+        
+        Examples:
+        - "noreply@github.com" → "GitHub"
+        - "support@stripe.com" → "Stripe"
+        - "billing@stripe.com" → "Stripe"
+        - "notifications@slack.com" → "Slack"
+        - "hello@openai.com" → "OpenAI"
+        - "john.doe@company.com" → "John Doe" (if identifiable) or "Company"
+        
+        Return a clean, simple organization or person name.
+      `,
+    });
+
+    return result.object.senderName;
+  } catch (error) {
+    console.error("Failed to determine sender name with AI:", error);
+    // Fallback to organization extraction
+    return extractOrganizationName(fromEmail);
+  }
+}
+
+// Helper function to get or create a sender
+async function getOrCreateSender(
+  db: typeof import("~/lib/server/db/drizzle").db,
+  userId: string,
+  fromEmail: string
+): Promise<string> {
+  // Use AI to determine sender name
+  const senderName = await determineSenderName(fromEmail);
+
+  // Check if a sender with this exact name already exists for this user
+  const existingSender = await db
+    .select()
+    .from(senders)
+    .where(and(eq(senders.userId, userId), eq(senders.name, senderName)))
+    .limit(1);
+
+  if (existingSender.length > 0) {
+    // Sender exists, return existing sender ID
+    return existingSender[0].id;
+  }
+
+  // Sender doesn't exist, try to create new one
+  try {
+    const [newSender] = await db
+      .insert(senders)
+      .values({
+        userId,
+        name: senderName,
+      })
+      .returning();
+
+    return newSender.id;
+  } catch (error) {
+    // If unique constraint violation, another process created the sender
+    // Look it up again and return the existing one
+    const retryExistingSender = await db
+      .select()
+      .from(senders)
+      .where(and(eq(senders.userId, userId), eq(senders.name, senderName)))
+      .limit(1);
+
+    if (retryExistingSender.length > 0) {
+      return retryExistingSender[0].id;
+    }
+
+    // If still not found, re-throw the original error
+    throw error;
+  }
 }
 
 // Helper function to group senders by organization
@@ -333,7 +427,22 @@ export const messagesRouter = createTRPCRouter({
           return null;
         }
 
-        return convertGmailMessageToMessage(userId, messageResponse.data);
+        const convertedMessage = convertGmailMessageToMessage(
+          userId,
+          messageResponse.data
+        );
+
+        // Get or create sender using AI
+        const senderId = await getOrCreateSender(
+          db,
+          userId,
+          convertedMessage.from
+        );
+
+        return {
+          ...convertedMessage,
+          senderId,
+        };
       });
 
       const messagesData = await Promise.all(messagePromises);
@@ -357,10 +466,10 @@ export const messagesRouter = createTRPCRouter({
                 snippet: sql.raw("excluded.snippet"),
                 subject: sql.raw("excluded.subject"),
                 to: sql.raw("excluded.to"),
+                senderId: sql.raw("excluded.sender_id"),
               },
             })
         );
-
         if (upsertError) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
